@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Central\PlatformController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\TenantRegistrationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\DeployController;
@@ -22,6 +23,8 @@ Route::post('deploy-hook', DeployController::class);
 | Central (platform) routes — no tenant
 |--------------------------------------------------------------------------
 */
+Route::get('plans', [MetaController::class, 'plans']);
+
 Route::post('register-institute', [TenantRegistrationController::class, 'store'])
     ->middleware('throttle:5,1');
 
@@ -42,11 +45,13 @@ Route::prefix('platform')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('tenant')->group(function () {
+    Route::get('tenant', [MetaController::class, 'tenant']);
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
     Route::middleware(['auth:sanctum', 'role'])->group(function () {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
+        Route::get('dashboard', [MetaController::class, 'dashboard']);
 
         Route::get('courses', [CourseController::class, 'index']);
         Route::get('courses/{course}', [CourseController::class, 'show']);

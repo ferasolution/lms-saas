@@ -4,29 +4,36 @@
 
 /*
  * Visual idea: the school exercise notebook — cool paper, faint blue rules,
- * one red margin line, fountain-pen blue ink. The margin line is the single
- * bold element; everything else stays quiet.
+ * one red margin line, fountain-pen ink. The margin line is the signature;
+ * everything around it stays quiet.
  */
 @theme {
     --font-sans: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
 
-    --color-paper: #fbfcfe;
+    --color-paper: #f7f9fd;
     --color-ink: #1b3a8c;
     --color-ink-deep: #12285f;
+    --color-ink-50: #eef3fc;
     --color-rule: #d6e3f5;
     --color-margin: #c8202f;
+    --color-margin-deep: #a11824;
+    --color-leaf: #1f7a4d;
+    --color-leaf-50: #e9f6ef;
     --color-graphite: #2b303b;
-    --color-pencil: #6a7181;
+    --color-pencil: #646b7b;
 }
 
 @layer base {
-    html { color-scheme: light; }
+    html { color-scheme: light; -webkit-tap-highlight-color: transparent; }
     body {
         @apply bg-paper text-graphite font-sans antialiased;
+        font-size: 16px;
+        line-height: 1.55;
     }
-    h1, h2, h3 { @apply font-display text-ink-deep; letter-spacing: -0.015em; }
-    :focus-visible { outline: 3px solid var(--color-ink); outline-offset: 2px; }
+    h1, h2, h3, h4 { @apply font-display text-ink-deep; letter-spacing: -0.02em; line-height: 1.15; }
+    :focus-visible { outline: 3px solid color-mix(in srgb, var(--color-ink) 55%, transparent); outline-offset: 2px; border-radius: 6px; }
+    ::selection { background: color-mix(in srgb, var(--color-ink) 18%, transparent); }
 }
 
 @utility ruled {
@@ -39,6 +46,16 @@
     );
 }
 
+@utility ruled-faint {
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 31px,
+        color-mix(in srgb, var(--color-rule) 55%, transparent) 31px,
+        color-mix(in srgb, var(--color-rule) 55%, transparent) 32px
+    );
+}
+
 @utility margin-line {
     position: relative;
     &::before {
@@ -48,21 +65,31 @@
         left: 0;
         width: 2px;
         background: var(--color-margin);
+        pointer-events: none;
     }
 }
 
 @utility btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
 }
 
+/* Older pages still use these. */
 @layer components {
-    .field { @apply block w-full rounded-md border border-rule bg-white px-3 py-2.5 text-graphite placeholder:text-pencil/70 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/20; }
+    .field { @apply block h-11 w-full rounded-lg border border-rule bg-white px-3 text-graphite placeholder:text-pencil/60 focus:border-ink focus:outline-none focus:ring-4 focus:ring-ink/10; }
     .label { @apply mb-1.5 block text-sm font-bold text-graphite; }
     .btn-ink { @apply btn bg-ink text-white hover:bg-ink-deep; }
     .btn-quiet { @apply btn border border-rule bg-white text-ink hover:border-ink; }
     .error { @apply mt-1.5 text-sm text-margin; }
 }
 
+@keyframes fade { from { opacity: 0; } }
+@keyframes slide-in { from { transform: translateX(24px); opacity: 0; } }
+@keyframes slide-in-left { from { transform: translateX(-24px); opacity: 0; } }
+@keyframes pop { from { transform: scale(.97); opacity: 0; } }
+@keyframes toast { from { transform: translateY(8px); opacity: 0; } }
+@keyframes write { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes fill { from { width: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; animation: none !important; }
+    *, *::before, *::after { transition: none !important; animation: none !important; }
 }

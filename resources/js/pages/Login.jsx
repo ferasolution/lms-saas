@@ -1,13 +1,26 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api, fieldError, session } from '../lib/api';
+import { api, session } from '../lib/api';
+import AuthShell from '../components/AuthShell';
+import Icon from '../components/Icon';
+import { Button, EmptyState, Field, Skeleton } from '../components/ui';
+
+const TYPE_ICON = { school: 'school', academy: 'academy', corporate: 'building' };
 
 export default function Login() {
     const { tenant } = useParams();
     const navigate = useNavigate();
+    const [info, setInfo] = useState(null);
     const [form, setForm] = useState({ email: '', password: '' });
+    const [show, setShow] = useState(false);
     const [error, setError] = useState(null);
     const [busy, setBusy] = useState(false);
+
+    useEffect(() => {
+        api('tenant', { tenant, token: null })
+            .then(setInfo)
+            .catch((err) => setInfo({ missing: err.status === 404, blocked: err.status === 403, message: err.message }));
+    }, [tenant]);
 
     async function submit(e) {
         e.preventDefault();
@@ -24,34 +37,54 @@ export default function Login() {
         }
     }
 
+    const aside = info?.name ? (
+        <>
+            <span className="grid h-16 w-16 place-items-center rounded-2xl bg-white/10 text-white ring-1 ring-white/20">
+                <Icon name={TYPE_ICON[info.type] ?? 'academy'} size={30} />
+            </span>
+            <h2 className="mt-8 font-display text-4xl leading-[1.1] font-extrabold text-white">{info.name}</h2>
+            <p className="mt-3 text-[17px] text-white/70">Sign in with the email and password your institute gave you.</p>
+        </>
+    ) : null;
+
     return (
-        <div className="ruled flex min-h-screen items-center justify-center px-6">
-            <form onSubmit={submit} className="margin-line w-full max-w-sm rounded-lg border border-rule bg-white p-8 pl-10 shadow-sm" noValidate>
-                <h1 className="text-2xl font-bold">Sign in</h1>
-                <p className="mt-1 text-pencil">to <span className="font-bold text-graphite">{tenant}</span></p>
+        <AuthShell aside={aside}>
+            {info === null ? (
+                <div className="space-y-4" role="status" aria-label="Loading"><Skeleton className="h-9 w-2/3" /><Skeleton className="h-11" /><Skeleton className="h-11" /></div>
+            ) : info.missing || info.blocked ? (
+                <EmptyState icon={info.blocked ? 'lock' : 'search'} title={info.blocked ? 'This institute is unavailable' : 'No institute at this address'}
+                    action={<Link to="/login" className="font-bold text-ink hover:underline">Find your institute</Link>}>
+                    {info.blocked ? info.message : <>Nothing is set up at <strong className="text-graphite">/{tenant}</strong>. Check the link you were given.</>}
+                </EmptyState>
+            ) : (
+                <>
+                    <p className="font-bold text-pencil lg:hidden">{info.name}</p>
+                    <h1 className="text-3xl font-extrabold">Welcome back</h1>
+                    <p className="mt-2 text-pencil">Sign in to <span className="font-bold text-graphite">{info.name}</span>.</p>
 
-                {error?.status === 404 && (
-                    <p className="error" role="alert">
-                        No institute uses this address. Check the link, or <Link className="underline" to="/">create one</Link>.
+                    <form onSubmit={submit} className="mt-8 space-y-5" noValidate>
+                        <Field label="Email" name="email" type="email" error={error} autoComplete="email" value={form.email}
+                            onChange={(e) => setForm({ ...form, email: e.target.value })} autoFocus />
+                        <Field label="Password">
+                            <div className="relative">
+                                <input aria-label="Password" type={show ? 'text' : 'password'} autoComplete="current-password" value={form.password}
+                                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                                    className="h-11 w-full rounded-lg border border-rule bg-white pr-12 pl-3 focus:border-ink focus:ring-4 focus:ring-ink/10 focus:outline-none" />
+                                <button type="button" onClick={() => setShow((s) => !s)} className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 text-pencil hover:text-ink"
+                                    aria-label={show ? 'Hide password' : 'Show password'}>
+                                    <Icon name={show ? 'eyeOff' : 'eye'} size={18} />
+                                </button>
+                            </div>
+                        </Field>
+                        {error?.status === 429 && <p className="text-margin" role="alert">Too many attempts. Wait a minute, then try again.</p>}
+                        <Button type="submit" size="lg" className="w-full" busy={busy}>Sign in</Button>
+                    </form>
+                    <p className="mt-6 text-center text-sm text-pencil">
+                        Forgot your password? Ask your institute’s admin to set a new one.
                     </p>
-                )}
-                {error?.status === 403 && <p className="error" role="alert">{error.message}</p>}
-
-                <div className="mt-6 space-y-4">
-                    <div>
-                        <label className="label" htmlFor="email">Email</label>
-                        <input id="email" type="email" className="field" autoComplete="email" value={form.email}
-                            onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-                        {fieldError(error, 'email') && <p className="error">{fieldError(error, 'email')}</p>}
-                    </div>
-                    <div>
-                        <label className="label" htmlFor="password">Password</label>
-                        <input id="password" type="password" className="field" autoComplete="current-password" value={form.password}
-                            onChange={(e) => setForm({ ...form, password: e.target.value })} required />
-                    </div>
-                    <button className="btn-ink w-full" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-                </div>
-            </form>
-        </div>
+                    <p className="mt-2 text-center text-sm"><Link to="/login" className="font-bold text-ink hover:underline">Not your institute?</Link></p>
+                </>
+            )}
+        </AuthShell>
     );
 }
