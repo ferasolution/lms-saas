@@ -1,0 +1,125 @@
+name: Test & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, sqlite3, bcmath
+          coverage: none
+
+      - name: Install PHP packages
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build frontend
+        run: npm ci && npm run build
+
+      - name: Run tests
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan test
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      PHP_BIN: ${{ secrets.PHP_BIN || 'php' }}
+    steps:
+      - name: Check deploy secrets
+        id: check
+        run: |
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_USER" ] || [ -z "$DEPLOY_PATH" ]; then
+            echo "::notice::Deploy skipped: add SSH_HOST, SSH_USER, SSH_PRIVATE_KEY and DEPLOY_PATH in Settings > Secrets > Actions."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.ready == 'true'
+
+      - uses: shivammathur/setup-php@v2
+        if: steps.check.outputs.ready == 'true'
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install production PHP packages
+        if: steps.check.outputs.ready == 'true'
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build frontend
+        if: steps.check.outputs.ready == 'true'
+        run: npm ci && npm run build
+
+      - name: Set up SSH
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          echo "SSH_CMD=ssh -i $HOME/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=yes" >> "$GITHUB_ENV"
+
+      - name: Check server .env exists
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          $SSH_CMD "$SSH_USER@$SSH_HOST" "test -f '$DEPLOY_PATH/.env'" || {
+            echo "::error::$DEPLOY_PATH/.env is missing on the server. Create it from .env.example first (see README)."
+            exit 1
+          }
+
+      - name: Upload code
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          # Code: mirror exactly, but never touch server-only files.
+          rsync -az --delete -e "$SSH_CMD" \
+            --exclude '.git/' --exclude '.github/' --exclude 'node_modules/' --exclude 'tests/' \
+            --exclude '/.env' --exclude '/storage/' --exclude '/public/storage' \
+            --exclude '/bootstrap/cache/*.php' \
+            ./ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/"
+          # Storage: create folders on first deploy, never overwrite uploads or logs.
+          rsync -az --ignore-existing -e "$SSH_CMD" storage/ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/storage/"
+
+      - name: Migrate and optimise
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          $SSH_CMD "$SSH_USER@$SSH_HOST" "cd '$DEPLOY_PATH' && \
+            $PHP_BIN artisan down --retry=15 || true; \
+            $PHP_BIN artisan migrate --force && \
+            $PHP_BIN artisan db:seed --force && \
+            $PHP_BIN artisan optimize:clear && \
+            $PHP_BIN artisan optimize && \
+            ( [ -L public/storage ] || $PHP_BIN artisan storage:link ); \
+            $PHP_BIN artisan up"

@@ -1,0 +1,68 @@
+@import 'tailwindcss';
+
+@source '../js/**/*.jsx';
+
+/*
+ * Visual idea: the school exercise notebook — cool paper, faint blue rules,
+ * one red margin line, fountain-pen blue ink. The margin line is the single
+ * bold element; everything else stays quiet.
+ */
+@theme {
+    --font-sans: 'Atkinson Hyperlegible', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+
+    --color-paper: #fbfcfe;
+    --color-ink: #1b3a8c;
+    --color-ink-deep: #12285f;
+    --color-rule: #d6e3f5;
+    --color-margin: #c8202f;
+    --color-graphite: #2b303b;
+    --color-pencil: #6a7181;
+}
+
+@layer base {
+    html { color-scheme: light; }
+    body {
+        @apply bg-paper text-graphite font-sans antialiased;
+    }
+    h1, h2, h3 { @apply font-display text-ink-deep; letter-spacing: -0.015em; }
+    :focus-visible { outline: 3px solid var(--color-ink); outline-offset: 2px; }
+}
+
+@utility ruled {
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 31px,
+        var(--color-rule) 31px,
+        var(--color-rule) 32px
+    );
+}
+
+@utility margin-line {
+    position: relative;
+    &::before {
+        content: '';
+        position: absolute;
+        inset-block: 0;
+        left: 0;
+        width: 2px;
+        background: var(--color-margin);
+    }
+}
+
+@utility btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+@layer components {
+    .field { @apply block w-full rounded-md border border-rule bg-white px-3 py-2.5 text-graphite placeholder:text-pencil/70 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/20; }
+    .label { @apply mb-1.5 block text-sm font-bold text-graphite; }
+    .btn-ink { @apply btn bg-ink text-white hover:bg-ink-deep; }
+    .btn-quiet { @apply btn border border-rule bg-white text-ink hover:border-ink; }
+    .error { @apply mt-1.5 text-sm text-margin; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+}
