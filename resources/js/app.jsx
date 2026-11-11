@@ -7,12 +7,14 @@ import TenantLayout from './pages/TenantLayout';
 import Overview from './pages/Overview';
 import Courses from './pages/Courses';
 import People from './pages/People';
+import PlatformSetup from './pages/PlatformSetup';
 
 function App() {
     return (
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Landing />} />
+                <Route path="/platform/setup" element={<PlatformSetup />} />
                 <Route path="/:tenant/login" element={<Login />} />
                 <Route path="/:tenant" element={<TenantLayout />}>
                     <Route index element={<Overview />} />

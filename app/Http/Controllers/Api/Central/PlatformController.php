@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -19,6 +20,59 @@ use Illuminate\Validation\ValidationException;
  */
 class PlatformController extends Controller
 {
+    /**
+     * One-time creation of the first super admin, for hosting without a terminal.
+     * Needs the DEPLOY_TOKEN and stops working as soon as a super admin exists.
+     */
+    public function setup(Request $request): JsonResponse
+    {
+        $expected = (string) config('app.deploy_token');
+
+        if (strlen($expected) < 32 || $this->superAdminExists()) {
+            abort(404);
+        }
+
+        $data = $request->validate([
+            'token' => ['required', 'string'],
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'confirmed', Password::min(10)],
+        ]);
+
+        if (! hash_equals($expected, $data['token'])) {
+            throw ValidationException::withMessages(['token' => 'This setup key is not correct.']);
+        }
+
+        $user = new User([
+            'name' => $data['name'],
+            'email' => strtolower($data['email']),
+            'password' => $data['password'],
+        ]);
+        $user->role = User::ROLE_SUPER_ADMIN;
+        $user->tenant_id = null;
+        $user->save();
+
+        return response()->json([
+            'user' => new UserResource($user),
+            'token' => $user->createToken('platform')->plainTextToken,
+        ], 201);
+    }
+
+    public function setupStatus(): JsonResponse
+    {
+        return response()->json([
+            'available' => strlen((string) config('app.deploy_token')) >= 32 && ! $this->superAdminExists(),
+        ]);
+    }
+
+    protected function superAdminExists(): bool
+    {
+        return User::withoutGlobalScope('tenant')
+            ->whereNull('tenant_id')
+            ->where('role', User::ROLE_SUPER_ADMIN)
+            ->exists();
+    }
+
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([

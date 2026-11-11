@@ -47,32 +47,43 @@ npm run dev   # in one terminal
 php artisan serve
 ```
 
-## Deployment (GitHub Actions → Bluehost)
+## Deployment (GitHub Actions → Bluehost over FTPS)
 
-Every push to `main` runs the tests, then deploys over SSH.
+Every push to `main` runs the tests, uploads the built app over FTPS (only changed files after
+the first time), then calls `POST /api/_deploy` with the `DEPLOY_TOKEN`, which runs migrations,
+seeds the plans and rebuilds Laravel's caches. No SSH or cPanel access is needed.
 
 **One-time server setup**
 
-1. PHP **8.3+** for the subdomain (cPanel → MultiPHP Manager) and on the command line.
-2. Document root of `lms.ferasolution.com` points to `<DEPLOY_PATH>/public`.
-3. Create `<DEPLOY_PATH>/.env` on the server from `.env.example` with:
-   `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://lms.ferasolution.com`,
-   `TENANCY_CENTRAL_DOMAIN=lms.ferasolution.com`, the MySQL `DB_*` values, and an `APP_KEY`
-   (generate one with `php artisan key:generate --show`).
-4. After the first deploy: `php artisan lms:super-admin you@example.com`.
+1. PHP **8.3+** for the subdomain (cPanel → MultiPHP Manager).
+2. Document root of `lms.ferasolution.com` points to its `public` folder.
+3. An FTP account whose home folder is the subdomain folder (the one that contains `public`).
+4. Upload a `.env` to that folder (see `.env.example`) with `APP_ENV=production`, `APP_DEBUG=false`,
+   `APP_URL`, `TENANCY_CENTRAL_DOMAIN=lms.ferasolution.com`, the MySQL `DB_*` values,
+   `APP_KEY` and `DEPLOY_TOKEN`.
+5. After the first deploy, open `https://lms.ferasolution.com/platform/setup` once to create the
+   platform owner. The page closes itself after that.
 
 **GitHub → Settings → Secrets and variables → Actions**
 
-| Secret | Example |
+| Secret | Value |
 |---|---|
-| `SSH_HOST` | `ferasolution.com` |
-| `SSH_USER` | cPanel username |
-| `SSH_PRIVATE_KEY` | private key whose public key is authorised in cPanel → SSH Access |
-| `DEPLOY_PATH` | `/home2/<user>/lms.ferasolution.com` |
-| `SSH_PORT` | optional, default `22` |
-| `PHP_BIN` | optional, e.g. `/opt/cpanel/ea-php83/root/usr/bin/php` if `php` is older |
+| `FTP_SERVER` | `ftp.ferasolution.com` |
+| `FTP_USERNAME` | the FTP account, e.g. `deploy@lms.ferasolution.com` |
+| `FTP_PASSWORD` | its password |
+| `DEPLOY_TOKEN` | same value as `DEPLOY_TOKEN` in the server `.env` |
+| `FTP_SERVER_DIR` | optional, only if the FTP home is not the subdomain folder (must end with `/`) |
 
 Until the secrets exist, the deploy job is skipped and only tests run.
+
+**Generating APP_KEY and DEPLOY_TOKEN without a terminal** (Windows PowerShell):
+
+```powershell
+$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); "base64:" + [Convert]::ToBase64String($b)
+$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); -join ($b | ForEach-Object { $_.ToString("x2") })
+```
+
+The first line is the `APP_KEY`, the second the `DEPLOY_TOKEN`.
 
 ## Roadmap
 

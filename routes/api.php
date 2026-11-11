@@ -5,7 +5,11 @@ use App\Http\Controllers\Api\Central\PlatformController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\TenantRegistrationController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\DeployController;
 use Illuminate\Support\Facades\Route;
+
+// Post-deploy hook for FTP deploys (see DeployController). Needs DEPLOY_TOKEN.
+Route::post('_deploy', DeployController::class);
 
 /*
 |--------------------------------------------------------------------------
@@ -16,6 +20,8 @@ Route::post('register-institute', [TenantRegistrationController::class, 'store']
     ->middleware('throttle:5,1');
 
 Route::prefix('platform')->group(function () {
+    Route::get('setup', [PlatformController::class, 'setupStatus']);
+    Route::post('setup', [PlatformController::class, 'setup'])->middleware('throttle:5,1');
     Route::post('login', [PlatformController::class, 'login'])->middleware('throttle:10,1');
 
     Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
