@@ -15,7 +15,7 @@ Route::get('install', [InstallController::class, 'status']);
 Route::post('install', [InstallController::class, 'install']);
 
 // Post-deploy hook for FTP deploys (see DeployController). Needs DEPLOY_TOKEN.
-Route::post('_deploy', DeployController::class);
+Route::post('deploy-hook', DeployController::class);
 
 /*
 |--------------------------------------------------------------------------

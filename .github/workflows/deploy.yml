@@ -145,10 +145,15 @@ jobs:
             echo "::notice::Files uploaded. Finish setup at $APP_URL/install, then save the token it shows as the DEPLOY_TOKEN secret."
             exit 0
           fi
+          # Bluehost's Mod_Security blocks curl's default user agent and empty POSTs,
+          # so send a named user agent and a small JSON body.
           code=$(curl -sS -o response.json -w '%{http_code}' -X POST \
+            -A "Mozilla/5.0 (compatible; FeraLearnDeploy/1.0; +https://github.com/ferasolution/lms-saas)" \
             -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
             -H "X-Deploy-Token: $DEPLOY_TOKEN" \
-            "$APP_URL/api/_deploy")
+            --data '{"source":"github-actions"}' \
+            "$APP_URL/api/deploy-hook")
           python3 -m json.tool response.json 2>/dev/null || cat response.json
           case "$code" in
             200) echo "Deploy hook finished." ;;

@@ -50,7 +50,7 @@ php artisan serve
 ## Deployment (GitHub Actions → Bluehost over FTPS)
 
 Every push to `main` runs the tests, uploads the built app over FTPS (only changed files after
-the first time), then calls `POST /api/_deploy` with the `DEPLOY_TOKEN`, which runs migrations,
+the first time), then calls `POST /api/deploy-hook` with the `DEPLOY_TOKEN`, which runs migrations,
 seeds the plans and rebuilds Laravel's caches. No SSH or cPanel access is needed.
 
 **First install (no terminal needed)**

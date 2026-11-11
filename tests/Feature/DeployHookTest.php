@@ -10,14 +10,14 @@ class DeployHookTest extends TestCase
     {
         config(['app.deploy_token' => null]);
 
-        $this->postJson('/api/_deploy', [], ['X-Deploy-Token' => 'anything'])->assertNotFound();
+        $this->postJson('/api/deploy-hook', [], ['X-Deploy-Token' => 'anything'])->assertNotFound();
     }
 
     public function test_hook_rejects_a_wrong_token(): void
     {
         config(['app.deploy_token' => str_repeat('a', 40)]);
 
-        $this->postJson('/api/_deploy', [], ['X-Deploy-Token' => str_repeat('b', 40)])->assertForbidden();
-        $this->postJson('/api/_deploy')->assertForbidden();
+        $this->postJson('/api/deploy-hook', [], ['X-Deploy-Token' => str_repeat('b', 40)])->assertForbidden();
+        $this->postJson('/api/deploy-hook')->assertForbidden();
     }
 }
