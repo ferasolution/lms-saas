@@ -1,0 +1,18 @@
+# Safety net for hosts where the document root is the project folder instead
+# of public/. Every request is served from public/, so nothing outside it
+# (.env, storage, vendor, source code) can ever be reached from the web.
+# If the document root already points to public/, this file is never read.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Belt and braces in case mod_rewrite is ever disabled.
+<FilesMatch "^\.|\.(env|lock|sql|log)$">
+    Require all denied
+</FilesMatch>
