@@ -1,6 +1,4 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-// The React app handles every page; the API lives under /api.
-Route::view('/{any?}', 'app')->where('any', '^(?!api|up).*$');
+// Session-based web routes would go here. The React app itself is registered
+// in bootstrap/app.php so it works without sessions (and before .env exists).

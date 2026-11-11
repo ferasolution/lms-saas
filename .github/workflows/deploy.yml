@@ -13,13 +13,23 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: lms_install_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v5
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, pdo_sqlite, sqlite3, bcmath
+          extensions: mbstring, pdo_sqlite, sqlite3, pdo_mysql, bcmath
           coverage: none
 
       - name: Install PHP packages
@@ -34,6 +44,12 @@ jobs:
         run: npm ci && npm run build
 
       - name: Run tests
+        env:
+          MYSQL_TEST_HOST: 127.0.0.1
+          MYSQL_TEST_PORT: 3306
+          MYSQL_TEST_DATABASE: lms_install_test
+          MYSQL_TEST_USERNAME: root
+          MYSQL_TEST_PASSWORD: root
         run: |
           cp .env.example .env
           php artisan key:generate
@@ -52,8 +68,8 @@ jobs:
       - name: Check deploy secrets
         id: check
         run: |
-          if [ -z "$FTP_SERVER" ] || [ -z "$FTP_USERNAME" ] || [ -z "$DEPLOY_TOKEN" ]; then
-            echo "::notice::Deploy skipped: add FTP_SERVER, FTP_USERNAME, FTP_PASSWORD and DEPLOY_TOKEN in Settings > Secrets > Actions."
+          if [ -z "$FTP_SERVER" ] || [ -z "$FTP_USERNAME" ]; then
+            echo "::notice::Deploy skipped: add FTP_SERVER, FTP_USERNAME and FTP_PASSWORD in Settings > Secrets > Actions."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -82,9 +98,16 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         run: npm ci && npm run build
 
-      - name: Prepare writable folders
+      - name: Prepare writable folders and installer key
         if: steps.check.outputs.ready == 'true'
+        env:
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
+          # The web installer (/install) asks for the FTP password and checks it against this hash.
+          # It lives in storage/, outside the public web root, and is deleted once installed.
+          mkdir -p storage/app
+          php -r 'echo hash("sha256", "lms-install:" . getenv("FTP_PASSWORD"));' > storage/app/install.key
+
           # FTP skips empty folders, so put a marker file in each one Laravel writes to.
           rm -f bootstrap/cache/*.php
           for d in storage/app/public storage/framework/cache/data storage/framework/sessions \
@@ -117,8 +140,18 @@ jobs:
       - name: Run migrations and rebuild caches
         if: steps.check.outputs.ready == 'true'
         run: |
-          set -o pipefail
-          curl -sS --fail-with-body -X POST \
+          if [ -z "$DEPLOY_TOKEN" ]; then
+            echo "::notice::Files uploaded. Finish setup at $APP_URL/install, then save the token it shows as the DEPLOY_TOKEN secret."
+            exit 0
+          fi
+          code=$(curl -sS -o response.json -w '%{http_code}' -X POST \
             -H "Accept: application/json" \
             -H "X-Deploy-Token: $DEPLOY_TOKEN" \
-            "$APP_URL/api/_deploy" | python3 -m json.tool
+            "$APP_URL/api/_deploy")
+          python3 -m json.tool response.json 2>/dev/null || cat response.json
+          case "$code" in
+            200) echo "Deploy hook finished." ;;
+            404) echo "::warning::Site is not installed yet. Open $APP_URL/install." ;;
+            403) echo "::error::DEPLOY_TOKEN in GitHub does not match the one on the server."; exit 1 ;;
+            *)   echo "::error::Deploy hook failed with HTTP $code."; exit 1 ;;
+          esac

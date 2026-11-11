@@ -8,12 +8,14 @@ import Overview from './pages/Overview';
 import Courses from './pages/Courses';
 import People from './pages/People';
 import PlatformSetup from './pages/PlatformSetup';
+import Install from './pages/Install';
 
 function App() {
     return (
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Landing />} />
+                <Route path="/install" element={<Install />} />
                 <Route path="/platform/setup" element={<PlatformSetup />} />
                 <Route path="/:tenant/login" element={<Login />} />
                 <Route path="/:tenant" element={<TenantLayout />}>

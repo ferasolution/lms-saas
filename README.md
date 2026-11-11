@@ -53,16 +53,16 @@ Every push to `main` runs the tests, uploads the built app over FTPS (only chang
 the first time), then calls `POST /api/_deploy` with the `DEPLOY_TOKEN`, which runs migrations,
 seeds the plans and rebuilds Laravel's caches. No SSH or cPanel access is needed.
 
-**One-time server setup**
+**First install (no terminal needed)**
 
-1. PHP **8.3+** for the subdomain (cPanel → MultiPHP Manager).
-2. Document root of `lms.ferasolution.com` points to its `public` folder.
-3. An FTP account whose home folder is the subdomain folder (the one that contains `public`).
-4. Upload a `.env` to that folder (see `.env.example`) with `APP_ENV=production`, `APP_DEBUG=false`,
-   `APP_URL`, `TENANCY_CENTRAL_DOMAIN=lms.ferasolution.com`, the MySQL `DB_*` values,
-   `APP_KEY` and `DEPLOY_TOKEN`.
-5. After the first deploy, open `https://lms.ferasolution.com/platform/setup` once to create the
-   platform owner. The page closes itself after that.
+1. PHP **8.3+** for the subdomain (cPanel → MultiPHP Manager); document root → its `public` folder.
+2. Add the `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` secrets below and push (or re-run the workflow).
+   The files are uploaded; the deploy notes that setup is pending.
+3. Open `https://lms.ferasolution.com/install`. Enter the FTP password (proves you own the site),
+   the MySQL details and your owner account. The installer creates the tables, the owner and `.env`
+   (with a fresh `APP_KEY`), then shows a **deploy token** once.
+4. Save that token as the `DEPLOY_TOKEN` secret. Every later deploy runs migrations and rebuilds
+   caches automatically. The installer is closed for good once `.env` exists.
 
 **GitHub → Settings → Secrets and variables → Actions**
 
@@ -71,19 +71,8 @@ seeds the plans and rebuilds Laravel's caches. No SSH or cPanel access is needed
 | `FTP_SERVER` | `ftp.ferasolution.com` |
 | `FTP_USERNAME` | the FTP account, e.g. `deploy@lms.ferasolution.com` |
 | `FTP_PASSWORD` | its password |
-| `DEPLOY_TOKEN` | same value as `DEPLOY_TOKEN` in the server `.env` |
+| `DEPLOY_TOKEN` | shown by the installer |
 | `FTP_SERVER_DIR` | optional, only if the FTP home is not the subdomain folder (must end with `/`) |
-
-Until the secrets exist, the deploy job is skipped and only tests run.
-
-**Generating APP_KEY and DEPLOY_TOKEN without a terminal** (Windows PowerShell):
-
-```powershell
-$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); "base64:" + [Convert]::ToBase64String($b)
-$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); -join ($b | ForEach-Object { $_.ToString("x2") })
-```
-
-The first line is the `APP_KEY`, the second the `DEPLOY_TOKEN`.
 
 ## Roadmap
 

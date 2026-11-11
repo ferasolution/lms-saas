@@ -6,7 +6,13 @@ use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\TenantRegistrationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\DeployController;
+use App\Http\Controllers\InstallController;
 use Illuminate\Support\Facades\Route;
+
+// First-run web installer (works only while the server has no .env). No
+// throttle here: the cache table it would need does not exist yet.
+Route::get('install', [InstallController::class, 'status']);
+Route::post('install', [InstallController::class, 'install']);
 
 // Post-deploy hook for FTP deploys (see DeployController). Needs DEPLOY_TOKEN.
 Route::post('_deploy', DeployController::class);
