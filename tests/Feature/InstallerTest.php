@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Http\Controllers\InstallController;
 use App\Models\Plan;
 use App\Models\User;
+use Dotenv\Dotenv;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
@@ -106,7 +107,14 @@ class InstallerTest extends TestCase
         $this->assertStringContainsString("DEPLOY_TOKEN={$token}", $env);
         $this->assertStringContainsString('DB_CONNECTION=mysql', $env);
         $this->assertStringContainsString('TENANCY_CENTRAL_DOMAIN=lms.example.com', $env);
-        $this->assertMatchesRegularExpression('/^APP_KEY=base64:[A-Za-z0-9+\/=]{44}$/m', $env);
+
+        // Parse it exactly the way Laravel will on the next request.
+        $parsed = Dotenv::parse($env);
+        $this->assertMatchesRegularExpression('/^base64:[A-Za-z0-9+\/=]{44}$/', $parsed['APP_KEY']);
+        $this->assertSame(32, strlen(base64_decode(substr($parsed['APP_KEY'], 7))));
+        $this->assertSame(getenv('MYSQL_TEST_PASSWORD'), $parsed['DB_PASSWORD']);
+        $this->assertSame($token, $parsed['DEPLOY_TOKEN']);
+        $this->assertSame('Fera Learn', $parsed['APP_NAME']);
 
         // Tables, plans and the owner exist in MySQL.
         $this->assertSame('mysql', config('database.default'));
