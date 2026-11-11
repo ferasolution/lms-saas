@@ -66,8 +66,8 @@ class InstallController extends Controller
 
         $expected = trim((string) file_get_contents($this->keyPath()));
 
-        if (! hash_equals($expected, hash('sha256', self::KEY_PREFIX.$data['install_key']))) {
-            throw ValidationException::withMessages(['install_key' => 'This is not the FTP password for this site.']);
+        if (! hash_equals($expected, hash('sha256', self::KEY_PREFIX.trim($data['install_key'])))) {
+            throw ValidationException::withMessages(['install_key' => 'This key does not match. Use the INSTALL_KEY secret from GitHub, or the FTP password if INSTALL_KEY is not set.']);
         }
 
         $db = [

@@ -58,7 +58,7 @@ seeds the plans and rebuilds Laravel's caches. No SSH or cPanel access is needed
 1. PHP **8.3+** for the subdomain (cPanel → MultiPHP Manager); document root → its `public` folder.
 2. Add the `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` secrets below and push (or re-run the workflow).
    The files are uploaded; the deploy notes that setup is pending.
-3. Open `https://lms.ferasolution.com/install`. Enter the FTP password (proves you own the site),
+3. Open `https://lms.ferasolution.com/install`. Enter the `INSTALL_KEY` secret (or the FTP password if it is not set),
    the MySQL details and your owner account. The installer creates the tables, the owner and `.env`
    (with a fresh `APP_KEY`), then shows a **deploy token** once.
 4. Save that token as the `DEPLOY_TOKEN` secret. Every later deploy runs migrations and rebuilds
@@ -71,6 +71,7 @@ seeds the plans and rebuilds Laravel's caches. No SSH or cPanel access is needed
 | `FTP_SERVER` | `ftp.ferasolution.com` |
 | `FTP_USERNAME` | the FTP account, e.g. `deploy@lms.ferasolution.com` |
 | `FTP_PASSWORD` | its password |
+| `INSTALL_KEY` | optional: a phrase you type on `/install` to prove you own the site (defaults to the FTP password) |
 | `DEPLOY_TOKEN` | shown by the installer |
 | `FTP_SERVER_DIR` | optional, only if the FTP home is not the subdomain folder (must end with `/`) |
 

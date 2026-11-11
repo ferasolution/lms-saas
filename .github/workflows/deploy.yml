@@ -101,12 +101,13 @@ jobs:
       - name: Prepare writable folders and installer key
         if: steps.check.outputs.ready == 'true'
         env:
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          INSTALL_KEY: ${{ secrets.INSTALL_KEY || secrets.FTP_PASSWORD }}
         run: |
-          # The web installer (/install) asks for the FTP password and checks it against this hash.
-          # It lives in storage/, outside the public web root, and is deleted once installed.
+          # The web installer (/install) asks for INSTALL_KEY (or, if that secret is not set, the
+          # FTP password) and checks it against this hash. Surrounding spaces/newlines are ignored.
+          # The file lives in storage/, outside the public web root, and is deleted once installed.
           mkdir -p storage/app
-          php -r 'echo hash("sha256", "lms-install:" . getenv("FTP_PASSWORD"));' > storage/app/install.key
+          php -r 'echo hash("sha256", "lms-install:" . trim(getenv("INSTALL_KEY")));' > storage/app/install.key
 
           # FTP skips empty folders, so put a marker file in each one Laravel writes to.
           rm -f bootstrap/cache/*.php

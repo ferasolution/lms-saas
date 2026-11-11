@@ -82,8 +82,8 @@ export default function Install() {
 
                         <fieldset className="space-y-4">
                             <legend className="font-display text-xl font-bold text-ink-deep">Confirm it’s you</legend>
-                            {field('install_key', 'FTP password', { type: 'password', autoComplete: 'off' },
-                                'The password of the FTP account GitHub deploys with. Only the site owner knows it.')}
+                            {field('install_key', 'Install key', { type: 'password', autoComplete: 'off' },
+                                'The INSTALL_KEY secret saved in GitHub. If you did not add one, use the FTP password.')}
                         </fieldset>
 
                         <fieldset className="space-y-4">
