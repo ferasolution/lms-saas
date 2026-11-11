@@ -26,6 +26,16 @@ class Course extends Model
         'status', 'published_at',
     ];
 
+    // Mirror the column defaults so a freshly created model has them too.
+    protected $attributes = [
+        'status' => self::STATUS_DRAFT,
+        'level' => 'beginner',
+        'language' => 'en',
+        'is_free' => false,
+        'price' => 0,
+        'currency' => 'PKR',
+    ];
+
     protected function casts(): array
     {
         return [

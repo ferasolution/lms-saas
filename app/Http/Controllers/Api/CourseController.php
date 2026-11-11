@@ -46,6 +46,7 @@ class CourseController extends Controller
             ? ($data['instructor_id'] ?? $user->id)
             : $user->id;
         $course->save();
+        $course->refresh();
 
         return (new CourseResource($course->load(['instructor', 'category'])))
             ->response()
