@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\School\AdmissionController;
 use App\Http\Controllers\Api\School\AttendanceController;
 use App\Http\Controllers\Api\School\DiaryController;
+use App\Http\Controllers\Api\School\FeeController;
 use App\Http\Controllers\Api\School\OverviewController;
 use App\Http\Controllers\Api\School\StructureController;
 use App\Http\Controllers\Api\School\StudentController;
@@ -150,6 +151,9 @@ Route::middleware('tenant')->group(function () {
             Route::get('leave', [AttendanceController::class, 'leaves']);
             Route::post('leave', [AttendanceController::class, 'requestLeave'])->middleware(['role:parent,student', 'throttle:10,1']);
             Route::get('students/{student}', [StudentController::class, 'show']);
+            Route::get('fees/mine', [FeeController::class, 'family'])->middleware('role:parent,student');
+            Route::get('fees/invoices/{invoice}', [FeeController::class, 'show']);
+            Route::post('fees/invoices/{invoice}/report-payment', [FeeController::class, 'reportPayment'])->middleware(['role:parent,student', 'throttle:10,1']);
 
             // Staff (teachers and the office)
             Route::middleware('role:admin,manager,instructor')->group(function () {
@@ -193,6 +197,27 @@ Route::middleware('tenant')->group(function () {
                 Route::post('students/{student}/guardians', [StudentController::class, 'addGuardian']);
                 Route::delete('students/{student}/guardians/{guardian}', [StudentController::class, 'removeGuardian']);
                 Route::get('exports/students.csv', [StudentController::class, 'export']);
+
+                // Fees
+                Route::get('fees/setup', [FeeController::class, 'setup']);
+                Route::post('fees/heads', [FeeController::class, 'storeHead']);
+                Route::patch('fees/heads/{head}', [FeeController::class, 'updateHead']);
+                Route::delete('fees/heads/{head}', [FeeController::class, 'destroyHead']);
+                Route::put('fees/plans/{class}', [FeeController::class, 'savePlan']);
+                Route::get('fees/discounts', [FeeController::class, 'discounts']);
+                Route::post('fees/discounts', [FeeController::class, 'storeDiscount']);
+                Route::delete('fees/discounts/{discount}', [FeeController::class, 'destroyDiscount']);
+                Route::post('fees/generate', [FeeController::class, 'generate'])->middleware('throttle:10,1');
+                Route::get('fees/invoices', [FeeController::class, 'index']);
+                Route::post('fees/invoices', [FeeController::class, 'store']);
+                Route::patch('fees/invoices/{invoice}', [FeeController::class, 'update']);
+                Route::post('fees/invoices/{invoice}/payments', [FeeController::class, 'recordPayment']);
+                Route::get('fees/payments', [FeeController::class, 'payments']);
+                Route::post('fees/payments/{payment}/review', [FeeController::class, 'reviewPayment']);
+                Route::post('fees/reminders', [FeeController::class, 'remind'])->middleware('throttle:5,1');
+                Route::get('fees/summary', [FeeController::class, 'summary']);
+                Route::get('fees/exports/invoices.csv', [FeeController::class, 'exportInvoices']);
+                Route::get('fees/exports/payments.csv', [FeeController::class, 'exportPayments']);
 
                 Route::get('admissions', [AdmissionController::class, 'index']);
                 Route::post('admissions', [AdmissionController::class, 'store']);
