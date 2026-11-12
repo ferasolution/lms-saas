@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api, session } from '../lib/api';
+import { applyBrand, resetBrand } from '../lib/brand';
 import Icon from '../components/Icon';
 import { Avatar, IconButton, Skeleton } from '../components/ui';
 
@@ -12,20 +13,32 @@ export default function TenantLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const [me, setMe] = useState(null);
+    const [pending, setPending] = useState(0);
     const [drawer, setDrawer] = useState(false);
+
+    const refresh = useCallback(() => api('auth/me', { tenant }).then((m) => {
+        setMe(m);
+        applyBrand(m.tenant.settings?.brand);
+        return m;
+    }), [tenant]);
 
     useEffect(() => {
         if (!session.token(tenant)) {
             navigate(`/${tenant}/login`, { replace: true });
             return;
         }
-        api('auth/me', { tenant })
-            .then(setMe)
-            .catch(() => {
-                session.clear(tenant);
-                navigate(`/${tenant}/login`, { replace: true });
-            });
-    }, [tenant, navigate]);
+        refresh().catch(() => {
+            session.clear(tenant);
+            navigate(`/${tenant}/login`, { replace: true });
+        });
+        return () => resetBrand();
+    }, [tenant, navigate, refresh]);
+
+    // Pending payments badge for admins; refreshed on navigation.
+    useEffect(() => {
+        if (me?.user.role !== 'admin') return;
+        api('orders?status=pending', { tenant }).then((r) => setPending(r.summary.pending)).catch(() => {});
+    }, [me?.user.role, tenant, location.pathname]);
 
     useEffect(() => setDrawer(false), [location.pathname]);
 
@@ -37,45 +50,73 @@ export default function TenantLayout() {
 
     if (!me) return <ShellSkeleton />;
 
-    const isAdmin = me.user.role === 'admin';
-    const canTeach = isAdmin || me.user.role === 'instructor';
-    const links = [
-        { to: `/${tenant}`, label: 'Overview', icon: 'home', end: true },
-        { to: `/${tenant}/courses`, label: canTeach ? 'Courses' : 'Browse courses', icon: 'book' },
-        ...(isAdmin ? [{ to: `/${tenant}/people`, label: 'People', icon: 'users' }] : []),
-    ];
+    const role = me.user.role;
+    const isAdmin = role === 'admin';
+    const canTeach = isAdmin || role === 'instructor';
+    const ctx = { me, tenant, isAdmin, canTeach, refresh };
+
+    // The lesson player takes the whole screen.
+    if (location.pathname.includes(`/${tenant}/learn/`)) {
+        return <Outlet context={ctx} />;
+    }
+
+    const groups = [
+        [
+            { to: `/${tenant}`, label: 'Overview', icon: 'home', end: true },
+            !canTeach && { to: `/${tenant}/my`, label: 'My learning', icon: 'play' },
+            { to: `/${tenant}/courses`, label: canTeach ? 'Courses' : 'Browse courses', icon: 'book' },
+            !canTeach && { to: `/${tenant}/certificates`, label: 'Certificates', icon: 'award' },
+        ],
+        isAdmin && [
+            { to: `/${tenant}/people`, label: 'People', icon: 'users' },
+            { to: `/${tenant}/payments`, label: 'Payments', icon: 'receipt', badge: pending },
+            { to: `/${tenant}/settings`, label: 'Settings', icon: 'settings' },
+        ],
+    ].filter(Boolean).map((g) => g.filter(Boolean));
+
     const trialDays = me.tenant.status === 'trial' && me.tenant.trial_ends_at
         ? Math.max(0, Math.ceil((new Date(me.tenant.trial_ends_at) - Date.now()) / 86400000))
         : null;
+    const logo = me.tenant.settings?.logo_url;
 
     const sidebar = (
         <div className="flex h-full flex-col">
             <div className="px-5 pt-6 pb-5">
                 <div className="flex items-center gap-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ink text-white">
-                        <Icon name={me.tenant.type === 'school' ? 'school' : me.tenant.type === 'corporate' ? 'building' : 'academy'} size={20} />
-                    </span>
+                    {logo ? (
+                        <img src={logo} alt="" className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain ring-1 ring-rule" />
+                    ) : (
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ink text-white">
+                            <Icon name={me.tenant.type === 'school' ? 'school' : me.tenant.type === 'corporate' ? 'building' : 'academy'} size={20} />
+                        </span>
+                    )}
                     <div className="min-w-0">
-                        <p className="truncate font-display text-[17px] font-bold leading-tight text-ink-deep">{me.tenant.name}</p>
+                        <p className="truncate font-display text-[17px] leading-tight font-bold text-ink-deep">{me.tenant.name}</p>
                         <p className="text-sm text-pencil">{TYPE_LABEL[me.tenant.type]}</p>
                     </div>
                 </div>
             </div>
 
-            <nav className="flex-1 space-y-1 px-3" aria-label="Main">
-                {links.map((l) => (
-                    <NavLink key={l.to} to={l.to} end={l.end}
-                        className={({ isActive }) =>
-                            `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 font-bold transition-colors ${isActive
-                                ? 'bg-ink-50 text-ink-deep before:absolute before:inset-y-2 before:-left-3 before:w-[3px] before:rounded-r before:bg-margin'
-                                : 'text-pencil hover:bg-ink-50/60 hover:text-ink-deep'}`}>
-                        <Icon name={l.icon} size={20} />
-                        {l.label}
-                    </NavLink>
+            <nav className="flex-1 space-y-5 overflow-y-auto px-3" aria-label="Main">
+                {groups.map((links, gi) => (
+                    <div key={gi} className="space-y-1">
+                        {gi > 0 && <p className="px-3 pb-1 text-xs font-bold text-pencil/80">Manage</p>}
+                        {links.map((l) => (
+                            <NavLink key={l.to} to={l.to} end={l.end}
+                                className={({ isActive }) =>
+                                    `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 font-bold transition-colors ${isActive
+                                        ? 'bg-ink-50 text-ink-deep before:absolute before:inset-y-2 before:-left-3 before:w-[3px] before:rounded-r before:bg-margin'
+                                        : 'text-pencil hover:bg-ink-50/60 hover:text-ink-deep'}`}>
+                                <Icon name={l.icon} size={20} />
+                                <span className="flex-1">{l.label}</span>
+                                {l.badge > 0 && <span className="rounded-full bg-margin px-2 py-0.5 text-xs font-bold text-white tabular-nums">{l.badge}</span>}
+                            </NavLink>
+                        ))}
+                    </div>
                 ))}
             </nav>
 
-            {trialDays !== null && (
+            {trialDays !== null && isAdmin && (
                 <div className="mx-3 mb-3 rounded-xl border border-rule bg-white p-4">
                     <p className="text-sm font-bold text-graphite">Free trial</p>
                     <p className="text-sm text-pencil">{trialDays} {trialDays === 1 ? 'day' : 'days'} left on the {me.tenant.plan?.name ?? 'Free'} plan</p>
@@ -85,12 +126,14 @@ export default function TenantLayout() {
                 </div>
             )}
 
-            <div className="flex items-center gap-3 border-t border-rule px-5 py-4">
-                <Avatar name={me.user.name} size={36} />
-                <div className="min-w-0 flex-1">
-                    <p className="truncate font-bold text-graphite">{me.user.name}</p>
-                    <p className="text-sm text-pencil">{ROLE_LABEL[me.user.role] ?? me.user.role}</p>
-                </div>
+            <div className="flex items-center gap-2 border-t border-rule px-3 py-3">
+                <Link to={`/${tenant}/profile`} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-ink-50/60">
+                    <Avatar name={me.user.name} size={36} />
+                    <div className="min-w-0">
+                        <p className="truncate font-bold text-graphite">{me.user.name}</p>
+                        <p className="text-sm text-pencil">{ROLE_LABEL[role] ?? role}</p>
+                    </div>
+                </Link>
                 <IconButton icon="logout" label="Sign out" onClick={signOut} />
             </div>
         </div>
@@ -98,14 +141,15 @@ export default function TenantLayout() {
 
     return (
         <div className="min-h-screen lg:grid lg:grid-cols-[17rem_1fr]">
-            {/* Desktop sidebar */}
-            <aside className="sticky top-0 hidden h-screen border-r border-rule bg-white lg:block">{sidebar}</aside>
+            <aside className="sticky top-0 hidden h-screen border-r border-rule bg-white lg:block print:hidden">{sidebar}</aside>
 
-            {/* Mobile top bar + drawer */}
-            <header className="sticky top-0 z-30 flex items-center justify-between border-b border-rule bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
+            <header className="sticky top-0 z-30 flex items-center justify-between border-b border-rule bg-white/90 px-4 py-3 backdrop-blur lg:hidden print:hidden">
                 <IconButton icon="menu" label="Open menu" onClick={() => setDrawer(true)} />
                 <p className="truncate px-3 font-display font-bold text-ink-deep">{me.tenant.name}</p>
-                <Avatar name={me.user.name} size={32} />
+                <Link to={`/${tenant}/profile`} aria-label="Your profile" className="relative">
+                    <Avatar name={me.user.name} size={32} />
+                    {pending > 0 && <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-margin" />}
+                </Link>
             </header>
             {drawer && (
                 <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
@@ -118,8 +162,8 @@ export default function TenantLayout() {
             )}
 
             <main className="min-w-0">
-                <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8 lg:px-12 lg:py-10">
-                    <Outlet context={{ me, tenant, isAdmin, canTeach }} />
+                <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8 lg:px-12 lg:py-10 print:max-w-none print:p-0">
+                    <Outlet context={ctx} />
                 </div>
             </main>
         </div>

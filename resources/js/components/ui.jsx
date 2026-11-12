@@ -261,3 +261,125 @@ export function ToastProvider({ children }) {
 }
 
 export const useToast = () => useContext(ToastContext);
+
+/* ---------- More building blocks ---------- */
+
+export function Progress({ value = 0, className = '', tone = 'ink', label }) {
+    const v = Math.max(0, Math.min(100, Number(value) || 0));
+    return (
+        <div className={`h-2 overflow-hidden rounded-full bg-ink-50 ${className}`} role="progressbar" aria-valuenow={v} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
+            <div className={`h-full rounded-full transition-[width] duration-500 ${tone === 'leaf' || v === 100 ? 'bg-leaf' : 'bg-ink'}`} style={{ width: `${v}%` }} />
+        </div>
+    );
+}
+
+export function Tabs({ tabs, value, onChange, className = '' }) {
+    return (
+        <div className={`flex gap-1 overflow-x-auto border-b border-rule ${className}`} role="tablist">
+            {tabs.map((t) => (
+                <button key={t.value} role="tab" type="button" aria-selected={value === t.value} onClick={() => onChange(t.value)}
+                    className={`relative -mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 font-bold whitespace-nowrap transition ${value === t.value ? 'border-margin text-ink-deep' : 'border-transparent text-pencil hover:text-ink-deep'}`}>
+                    {t.icon && <Icon name={t.icon} size={18} />}
+                    {t.label}
+                    {t.count !== undefined && t.count !== null && (
+                        <span className={`rounded-full px-1.5 text-xs tabular-nums ${value === t.value ? 'bg-ink text-white' : 'bg-ink-50 text-ink'}`}>{t.count}</span>
+                    )}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+export function Toggle({ checked, onChange, label, hint }) {
+    return (
+        <label className="flex cursor-pointer items-start justify-between gap-4">
+            <span>
+                <span className="block font-bold text-graphite">{label}</span>
+                {hint && <span className="block text-sm text-pencil">{hint}</span>}
+            </span>
+            <span className="relative mt-0.5 inline-flex shrink-0">
+                <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+                <span className="h-6 w-11 rounded-full bg-rule transition peer-checked:bg-ink peer-focus-visible:ring-4 peer-focus-visible:ring-ink/20" />
+                <span className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
+            </span>
+        </label>
+    );
+}
+
+export function Modal({ open, onClose, title, description, children, footer, size = 'md' }) {
+    useEscape(open, onClose);
+    if (!open) return null;
+    const widths = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' };
+    return (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={title}>
+            <div className="absolute inset-0 bg-ink-deep/30 backdrop-blur-[2px]" onClick={onClose} />
+            <div className={`relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl ${widths[size]} animate-[pop_.15s_ease-out]`}>
+                <div className="flex items-start justify-between gap-4 border-b border-rule px-6 py-5">
+                    <div>
+                        <h2 className="text-xl font-bold">{title}</h2>
+                        {description && <p className="mt-1 text-sm text-pencil">{description}</p>}
+                    </div>
+                    <IconButton icon="x" label="Close" onClick={onClose} />
+                </div>
+                <div className="overflow-y-auto px-6 py-5">{children}</div>
+                {footer && <div className="flex justify-end gap-3 border-t border-rule px-6 py-4">{footer}</div>}
+            </div>
+        </div>
+    );
+}
+
+/** Upload box: click or drop a file. `value` is the current URL. */
+export function FileDrop({ kind = 'image', value, onUpload, onClear, uploading, error, hint }) {
+    const [over, setOver] = useState(false);
+    const input = useRef(null);
+    const accept = kind === 'image' ? 'image/png,image/jpeg,image/webp' : 'application/pdf';
+    const pick = (files) => files?.[0] && onUpload(files[0]);
+
+    if (value) {
+        return (
+            <div className="flex items-center gap-3 rounded-xl border border-rule bg-white p-3">
+                {kind === 'image'
+                    ? <img src={value} alt="" className="h-16 w-24 rounded-lg object-cover ring-1 ring-rule" />
+                    : <span className="grid h-12 w-12 place-items-center rounded-lg bg-margin/10 text-margin"><Icon name="file" /></span>}
+                <a href={value} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate text-sm font-bold text-ink hover:underline">
+                    {decodeURIComponent(value.split('/').pop())}
+                </a>
+                <Button variant="ghost" size="sm" onClick={() => input.current?.click()}>Replace</Button>
+                {onClear && <IconButton icon="trash" label="Remove" onClick={onClear} />}
+                <input ref={input} type="file" accept={accept} className="hidden" onChange={(e) => pick(e.target.files)} />
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <button type="button" onClick={() => input.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
+                onDrop={(e) => { e.preventDefault(); setOver(false); pick(e.dataTransfer.files); }}
+                className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-7 text-center transition ${over ? 'border-ink bg-ink-50' : 'border-rule bg-white hover:border-ink/40'}`}>
+                {uploading ? <Spinner className="text-ink" /> : <Icon name="upload" size={24} className="text-ink" />}
+                <span className="font-bold text-graphite">{uploading ? 'Uploading…' : `Drop ${kind === 'image' ? 'an image' : 'a PDF'} here or click to choose`}</span>
+                <span className="text-sm text-pencil">{hint ?? (kind === 'image' ? 'JPG, PNG or WebP, up to 4 MB' : 'PDF up to 20 MB')}</span>
+            </button>
+            {error && <p className="mt-1.5 text-sm text-margin">{error}</p>}
+            <input ref={input} type="file" accept={accept} className="hidden" onChange={(e) => pick(e.target.files)} />
+        </div>
+    );
+}
+
+export function PageHeader({ title, description, actions, back }) {
+    return (
+        <header className="flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0">
+                {back && (
+                    <Link to={back.to} className="mb-3 inline-flex items-center gap-1.5 text-sm font-bold text-pencil hover:text-ink">
+                        <Icon name="arrowLeft" size={16} />{back.label}
+                    </Link>
+                )}
+                <h1 className="text-3xl font-extrabold sm:text-4xl">{title}</h1>
+                {description && <p className="mt-1 text-pencil">{description}</p>}
+            </div>
+            {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+        </header>
+    );
+}

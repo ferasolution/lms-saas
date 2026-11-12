@@ -1,0 +1,192 @@
+import { useEffect, useState } from 'react';
+import { Navigate, useOutletContext, useSearchParams } from 'react-router-dom';
+import { api, upload } from '../lib/api';
+import { applyBrand, BRANDS } from '../lib/brand';
+import Icon from '../components/Icon';
+import { Button, Field, FileDrop, PageHeader, Tabs, useToast } from '../components/ui';
+
+export default function Settings() {
+    const { tenant, isAdmin, me, refresh } = useOutletContext();
+    const toast = useToast();
+    const [params, setParams] = useSearchParams();
+    const tab = params.get('tab') ?? 'institute';
+    const s = me.tenant.settings ?? {};
+
+    const [form, setForm] = useState(() => ({
+        name: me.tenant.name,
+        brand: s.brand ?? 'ink',
+        logo_url: s.logo_url ?? '',
+        welcome_message: s.welcome_message ?? '',
+        support_email: s.support_email ?? '',
+        support_phone: s.support_phone ?? '',
+        certificate_signatory: s.certificate_signatory ?? '',
+        jazzcash: s.payments?.jazzcash ?? '',
+        easypaisa: s.payments?.easypaisa ?? '',
+        bank: s.payments?.bank ?? '',
+        instructions: s.payments?.instructions ?? '',
+    }));
+    const [error, setError] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState(null);
+
+    // Undo an unsaved colour preview when leaving the page.
+    const savedBrand = s.brand ?? 'ink';
+    useEffect(() => () => applyBrand(savedBrand), [savedBrand]);
+
+    if (!isAdmin) return <Navigate to={`/${tenant}`} replace />;
+
+    const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+    const pickBrand = (key) => { setForm((f) => ({ ...f, brand: key })); applyBrand(key); };
+
+    async function onLogo(file) {
+        setUploading(true);
+        setUploadError(null);
+        try {
+            const r = await upload(file, 'image', tenant);
+            setForm((f) => ({ ...f, logo_url: r.url }));
+        } catch (err) {
+            setUploadError(err.message);
+        } finally {
+            setUploading(false);
+        }
+    }
+
+    async function save(e) {
+        e?.preventDefault();
+        setBusy(true);
+        setError(null);
+        try {
+            await api('settings', {
+                method: 'PATCH', tenant, body: {
+                    name: form.name,
+                    settings: {
+                        brand: form.brand,
+                        logo_url: form.logo_url || null,
+                        welcome_message: form.welcome_message || null,
+                        support_email: form.support_email || null,
+                        support_phone: form.support_phone || null,
+                        certificate_signatory: form.certificate_signatory || null,
+                        payments: {
+                            jazzcash: form.jazzcash || null,
+                            easypaisa: form.easypaisa || null,
+                            bank: form.bank || null,
+                            instructions: form.instructions || null,
+                        },
+                    },
+                },
+            });
+            await refresh();
+            toast('Settings saved');
+        } catch (err) {
+            setError(err);
+            toast(err.message, 'error');
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    const err = (k) => error?.errors?.[`settings.${k}`]?.[0] ?? error?.errors?.[`settings.payments.${k}`]?.[0];
+
+    return (
+        <form onSubmit={save} noValidate className="pb-24">
+            <PageHeader title="Settings" description="How your institute looks to students, and how they pay you." />
+
+            <Tabs className="mt-8" value={tab} onChange={(t) => setParams({ tab: t }, { replace: true })} tabs={[
+                { value: 'institute', label: 'Institute', icon: 'school' },
+                { value: 'branding', label: 'Branding', icon: 'palette' },
+                { value: 'payments', label: 'Payments', icon: 'wallet' },
+                { value: 'certificates', label: 'Certificates', icon: 'award' },
+            ]} />
+
+            <div className="mt-6 max-w-3xl space-y-6">
+                {tab === 'institute' && (
+                    <Card>
+                        <Field label="Institute name" name="name" error={error} value={form.name} onChange={set('name')} />
+                        <Field label="Welcome message on your sign-in page" value={form.welcome_message} onChange={set('welcome_message')} error={err('welcome_message')}
+                            placeholder="e.g. Welcome back! Classes resume on Monday." maxLength={300} />
+                        <div className="grid gap-5 sm:grid-cols-2">
+                            <Field label="Support email" type="email" value={form.support_email} onChange={set('support_email')} error={err('support_email')} hint="Shown to students who need help." />
+                            <Field label="Support phone / WhatsApp" value={form.support_phone} onChange={set('support_phone')} error={err('support_phone')} />
+                        </div>
+                        <div className="rounded-xl bg-paper p-4 text-sm text-pencil">
+                            Your sign-in page: <strong className="text-graphite">{window.location.host}/{tenant}/login</strong>
+                        </div>
+                    </Card>
+                )}
+
+                {tab === 'branding' && (
+                    <>
+                        <Card title="Logo">
+                            <FileDrop kind="image" value={form.logo_url} uploading={uploading} error={uploadError ?? err('logo_url')}
+                                onUpload={onLogo} onClear={() => setForm((f) => ({ ...f, logo_url: '' }))} hint="Square or wide PNG with a transparent background works best." />
+                        </Card>
+                        <Card title="Colour" description="Used for buttons, links and highlights across your institute. Changes preview instantly.">
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                {Object.entries(BRANDS).map(([key, b]) => (
+                                    <button key={key} type="button" onClick={() => pickBrand(key)} aria-pressed={form.brand === key}
+                                        className={`flex items-center gap-3 rounded-xl border-2 p-3 text-left transition ${form.brand === key ? 'border-ink' : 'border-rule hover:border-ink/30'}`}>
+                                        <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+                                            <span className="flex-1" style={{ background: b.ink }} />
+                                            <span className="w-3" style={{ background: b.deep }} />
+                                        </span>
+                                        <span className="font-bold text-graphite">{b.label}</span>
+                                        {form.brand === key && <Icon name="check" size={18} className="ml-auto text-ink" strokeWidth={2.6} />}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-rule bg-paper p-4">
+                                <Button type="button" size="sm">Primary button</Button>
+                                <Button type="button" size="sm" variant="secondary">Secondary</Button>
+                                <span className="font-bold text-ink">A link</span>
+                                <span className="h-2 w-28 overflow-hidden rounded-full bg-ink-50"><span className="block h-full w-2/3 bg-ink" /></span>
+                            </div>
+                        </Card>
+                    </>
+                )}
+
+                {tab === 'payments' && (
+                    <Card description="Students see these when they buy a paid course. They pay you directly, then send the transaction ID for you to approve on the Payments page.">
+                        <div className="grid gap-5 sm:grid-cols-2">
+                            <Field label="JazzCash account" value={form.jazzcash} onChange={set('jazzcash')} error={err('jazzcash')} placeholder="0300 1234567 (Account title)" />
+                            <Field label="Easypaisa account" value={form.easypaisa} onChange={set('easypaisa')} error={err('easypaisa')} placeholder="0345 1234567 (Account title)" />
+                        </div>
+                        <Field label="Bank account" as="textarea" rows={3} value={form.bank} onChange={set('bank')} error={err('bank')}
+                            placeholder={'Meezan Bank\nAccount title: Bright Minds Academy\nIBAN: PK00 MEZN 0000 0000 0000 0000'} />
+                        <Field label="Extra instructions (optional)" as="textarea" rows={3} value={form.instructions} onChange={set('instructions')} error={err('instructions')}
+                            placeholder="e.g. Write your full name in the payment note." />
+                        <p className="flex items-start gap-2 text-sm text-pencil"><Icon name="lock" size={16} className="mt-0.5 shrink-0" />Only signed-in students of your institute can see these details.</p>
+                    </Card>
+                )}
+
+                {tab === 'certificates' && (
+                    <Card description="Certificates are issued automatically when a student finishes every lesson of a course with certificates turned on.">
+                        <Field label="Signed by" value={form.certificate_signatory} onChange={set('certificate_signatory')} error={err('certificate_signatory')}
+                            placeholder="e.g. Ayesha Khan, Principal" hint="Leave empty to show the course instructor’s name." />
+                        <p className="text-sm text-pencil">Every certificate has a code that anyone can check at <strong className="text-graphite">{window.location.host}/verify</strong>.</p>
+                    </Card>
+                )}
+            </div>
+
+            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-rule bg-white/95 backdrop-blur lg:left-[17rem]">
+                <div className="mx-auto flex max-w-6xl items-center justify-end gap-3 px-4 py-3 sm:px-8 lg:px-12">
+                    <Button type="submit" busy={busy} icon="check">Save settings</Button>
+                </div>
+            </div>
+        </form>
+    );
+}
+
+function Card({ title, description, children }) {
+    return (
+        <section className="space-y-5 rounded-2xl border border-rule bg-white p-5 sm:p-6">
+            {(title || description) && (
+                <div>
+                    {title && <h2 className="text-lg font-bold">{title}</h2>}
+                    {description && <p className="mt-1 text-pencil">{description}</p>}
+                </div>
+            )}
+            {children}
+        </section>
+    );
+}

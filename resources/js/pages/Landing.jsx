@@ -8,26 +8,26 @@ const AUDIENCES = [
     {
         type: 'school', icon: 'school', title: 'Schools and colleges',
         text: 'Run classes online alongside the classroom.',
-        points: ['Classes and sections', 'Homework and quizzes', 'Parent accounts', 'Report cards'],
+        points: ['Courses by subject and class', 'Quizzes that mark themselves', 'Lessons released week by week', 'Student progress at a glance'],
     },
     {
         type: 'academy', icon: 'academy', title: 'Academies and tutors',
         text: 'Sell your courses under your own name.',
-        points: ['Paid and free courses', 'JazzCash, Easypaisa and cards', 'Coupons and sale prices', 'Certificates'],
+        points: ['Paid and free courses', 'JazzCash, Easypaisa and bank payments', 'Sale prices', 'Certificates anyone can verify'],
     },
     {
         type: 'corporate', icon: 'building', title: 'Companies',
         text: 'Train staff and prove who finished.',
-        points: ['Departments and teams', 'Required trainings with deadlines', 'Completion reports', 'Bulk staff import'],
+        points: ['Training courses for every team', 'Pass marks and attempt limits', 'Who finished, and when', 'Certificates for every completion'],
     },
 ];
 
 const FEATURES = [
     { icon: 'book', title: 'Course builder', text: 'Organise lessons into sections: video, PDF, text or a live class link.' },
-    { icon: 'quiz', title: 'Quizzes that mark themselves', text: 'Multiple choice and true/false are graded instantly. Written answers wait for the teacher.' },
+    { icon: 'quiz', title: 'Quizzes that mark themselves', text: 'One-answer, multi-answer and true/false questions are graded the moment a student submits.' },
     { icon: 'chart', title: 'Progress you can see', text: 'Know which lesson each student reached and who has gone quiet.' },
     { icon: 'award', title: 'Certificates', text: 'Issued on completion, each with a code anyone can verify.' },
-    { icon: 'wallet', title: 'Payments in rupees', text: 'Take fees through JazzCash, Easypaisa or card, with coupons and sale prices.' },
+    { icon: 'wallet', title: 'Payments in rupees', text: 'Students pay by JazzCash, Easypaisa or bank, send the transaction ID, and you approve in one tap.' },
     { icon: 'palette', title: 'Your name on it', text: 'Your logo and colours on your own sign-in page. Students never see ours.' },
 ];
 

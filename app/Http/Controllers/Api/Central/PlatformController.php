@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\Central;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
+use App\Models\Certificate;
+use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -93,6 +96,33 @@ class PlatformController extends Controller
         return response()->json([
             'user' => new UserResource($user),
             'token' => $user->createToken('platform')->plainTextToken,
+        ]);
+    }
+
+    public function me(Request $request): JsonResponse
+    {
+        return response()->json(['user' => new UserResource($request->user())]);
+    }
+
+    public function stats(): JsonResponse
+    {
+        $byStatus = Tenant::query()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+        $byType = Tenant::query()->selectRaw('type, count(*) as total')->groupBy('type')->pluck('total', 'type');
+
+        return response()->json([
+            'tenants' => [
+                'total' => (int) $byStatus->sum(),
+                'trial' => (int) ($byStatus['trial'] ?? 0),
+                'active' => (int) ($byStatus['active'] ?? 0),
+                'suspended' => (int) ($byStatus['suspended'] ?? 0),
+                'new_30_days' => Tenant::where('created_at', '>=', now()->subDays(30))->count(),
+                'by_type' => $byType,
+            ],
+            'users' => User::whereNotNull('tenant_id')->count(),
+            'students' => User::where('role', User::ROLE_STUDENT)->count(),
+            'courses' => Course::count(),
+            'enrollments' => Enrollment::count(),
+            'certificates' => Certificate::count(),
         ]);
     }
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import Icon from '../components/Icon';
 import CourseCover from '../components/CourseCover';
@@ -24,6 +24,7 @@ const titleCase = (s) => s[0].toUpperCase() + s.slice(1);
 
 export default function Courses() {
     const { tenant, canTeach, isAdmin, me } = useOutletContext();
+    const navigate = useNavigate();
     const [params, setParams] = useSearchParams();
     const toast = useToast();
 
@@ -134,24 +135,27 @@ export default function Courses() {
                 ) : (
                     <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                         {courses.map((c) => (
-                            <li key={c.id} className="group flex flex-col overflow-hidden rounded-2xl border border-rule bg-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-16px_rgba(18,40,95,.35)]">
-                                <button type="button" className="text-left" onClick={() => canManage(c) && setEditing(c)} disabled={!canManage(c)} aria-label={`Edit ${c.title}`}>
+                            <li key={c.id} className="group relative flex flex-col overflow-hidden rounded-2xl border border-rule bg-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-16px_rgba(18,40,95,.35)]">
+                                <Link to={`/${tenant}/courses/${c.id}`} tabIndex={-1} aria-hidden>
                                     <CourseCover course={c} className="h-36 w-full" />
-                                </button>
+                                </Link>
                                 <div className="flex flex-1 flex-col p-5">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
                                             {canTeach && <Badge tone={c.status} dot>{titleCase(c.status)}</Badge>}
-                                            <h3 className="mt-2 text-lg leading-snug font-bold">{c.title}</h3>
+                                            <h3 className="mt-2 text-lg leading-snug font-bold">
+                                                <Link to={`/${tenant}/courses/${c.id}`} className="after:absolute after:inset-0 hover:underline">{c.title}</Link>
+                                            </h3>
                                         </div>
                                         {canManage(c) && (
-                                            <Menu label={`Actions for ${c.title}`} items={[
-                                                { label: 'Edit details', icon: 'edit', onClick: () => setEditing(c) },
+                                            <div className="relative z-10"><Menu label={`Actions for ${c.title}`} items={[
+                                                { label: 'Open course builder', icon: 'layers', onClick: () => navigate(`/${tenant}/courses/${c.id}`) },
+                                                { label: 'Quick edit', icon: 'edit', onClick: () => setEditing(c) },
                                                 c.status !== 'published' && { label: 'Publish', icon: 'eye', onClick: () => setCourseStatus(c, 'published') },
                                                 c.status === 'published' && { label: 'Unpublish', icon: 'eyeOff', onClick: () => setCourseStatus(c, 'draft') },
                                                 c.status !== 'archived' && { label: 'Archive', icon: 'lock', onClick: () => setCourseStatus(c, 'archived') },
                                                 { label: 'Delete', icon: 'trash', danger: true, onClick: () => setDeleting(c) },
-                                            ]} />
+                                            ]} /></div>
                                         )}
                                     </div>
                                     {c.short_description && <p className="mt-1.5 line-clamp-2 text-pencil">{c.short_description}</p>}
@@ -176,7 +180,11 @@ export default function Courses() {
                 course={editing}
                 tenant={tenant}
                 onClose={closeEditor}
-                onSaved={(msg) => { closeEditor(); toast(msg); load(); }}
+                onSaved={(msg, created) => {
+                    closeEditor();
+                    toast(msg);
+                    if (created) navigate(`/${tenant}/courses/${created.id}`); else load();
+                }}
             />
 
             <ConfirmDialog
@@ -231,8 +239,8 @@ function CourseEditor({ open, course, tenant, onClose, onSaved }) {
             ...(nextStatus ? { status: nextStatus } : {}),
         };
         try {
-            await api(isNew ? 'courses' : `courses/${course.id}`, { method: isNew ? 'POST' : 'PATCH', tenant, body });
-            onSaved(isNew ? (nextStatus === 'published' ? 'Course published' : 'Draft saved') : 'Changes saved');
+            const saved = await api(isNew ? 'courses' : `courses/${course.id}`, { method: isNew ? 'POST' : 'PATCH', tenant, body });
+            onSaved(isNew ? 'Course created. Now add your lessons.' : 'Changes saved', isNew ? saved : null);
         } catch (err) {
             setError(err);
         } finally {
@@ -245,11 +253,11 @@ function CourseEditor({ open, course, tenant, onClose, onSaved }) {
             open={open}
             onClose={onClose}
             title={isNew ? 'New course' : 'Edit course'}
-            description={isNew ? 'You can add sections, lessons and quizzes after saving.' : null}
+            description={isNew ? 'Start with the basics. Lessons and quizzes come next, and you publish when it’s ready.' : null}
             footer={isNew ? (
                 <>
-                    <Button variant="secondary" busy={busy === 'draft'} onClick={() => save('draft')}>Save draft</Button>
-                    <Button busy={busy === 'published'} onClick={() => save('published')}>Publish</Button>
+                    <Button variant="secondary" onClick={onClose}>Cancel</Button>
+                    <Button busy={busy === 'draft'} iconRight="arrowRight" onClick={() => save('draft')}>Create and add lessons</Button>
                 </>
             ) : (
                 <>

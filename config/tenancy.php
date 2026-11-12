@@ -19,7 +19,7 @@ return [
     'reserved_slugs' => [
         'www', 'api', 'app', 'admin', 'central', 'mail', 'smtp', 'ftp', 'cpanel',
         'webmail', 'lms', 'dashboard', 'login', 'register', 'support', 'help',
-        'status', 'static', 'assets', 'cdn', 'billing', 'docs', 'blog', 'platform', 'build', 'storage', 'install', 'pricing', 'features', 'about', 'terms', 'privacy',
+        'status', 'static', 'assets', 'cdn', 'billing', 'docs', 'blog', 'platform', 'build', 'storage', 'install', 'verify', 'my', 'learn', 'pricing', 'features', 'about', 'terms', 'privacy',
     ],
 
 ];

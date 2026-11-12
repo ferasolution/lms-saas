@@ -93,3 +93,9 @@
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+@media print {
+    @page { size: A4 landscape; margin: 0; }
+    body { background: #fff !important; }
+    .certificate { width: 297mm !important; height: 210mm !important; aspect-ratio: auto !important; }
+}

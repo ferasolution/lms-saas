@@ -43,5 +43,22 @@ export async function api(path, { method = 'GET', body, tenant, token } = {}) {
     return data;
 }
 
+/** Upload an image or PDF. Returns { url, name, size }. */
+export async function upload(file, kind, tenant) {
+    const body = new FormData();
+    body.append('kind', kind);
+    body.append('file', file);
+    const headers = { Accept: 'application/json', 'X-Tenant': tenant };
+    const token = session.token(tenant);
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch('/api/uploads', { method: 'POST', headers, body });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+        const msg = data?.errors?.file?.[0] || data?.message || (res.status === 413 ? 'That file is too large for the server.' : 'Upload failed.');
+        throw new ApiError(res.status, { message: msg, errors: data?.errors });
+    }
+    return data;
+}
+
 // First validation message for a field, if any.
 export const fieldError = (err, field) => err?.errors?.[field]?.[0];

@@ -21,7 +21,7 @@ class Course extends Model
     public const STATUS_ARCHIVED = 'archived';
 
     protected $fillable = [
-        'instructor_id', 'category_id', 'title', 'slug', 'short_description', 'description',
+        'instructor_id', 'category_id', 'title', 'slug', 'short_description', 'description', 'what_you_learn', 'certificate_enabled',
         'thumbnail', 'level', 'language', 'is_free', 'price', 'sale_price', 'currency',
         'status', 'published_at',
     ];
@@ -34,12 +34,14 @@ class Course extends Model
         'is_free' => false,
         'price' => 0,
         'currency' => 'PKR',
+        'certificate_enabled' => true,
     ];
 
     protected function casts(): array
     {
         return [
             'is_free' => 'boolean',
+            'certificate_enabled' => 'boolean',
             'price' => 'decimal:2',
             'sale_price' => 'decimal:2',
             'published_at' => 'datetime',
@@ -103,6 +105,31 @@ class Course extends Model
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function certificates(): HasMany
+    {
+        return $this->hasMany(Certificate::class);
+    }
+
+    /** Price a student pays right now. */
+    public function effectivePrice(): float
+    {
+        if ($this->is_free) {
+            return 0.0;
+        }
+
+        return (float) ($this->sale_price ?? $this->price);
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->effectivePrice() > 0;
     }
 
     public function quizzes(): HasMany

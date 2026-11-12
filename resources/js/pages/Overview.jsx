@@ -4,6 +4,8 @@ import { api } from '../lib/api';
 import Icon from '../components/Icon';
 import { Badge, Button, Skeleton, useToast } from '../components/ui';
 import CourseCover from '../components/CourseCover';
+import { money } from '../lib/format';
+import { MyCourseCard, useMyCourses } from './MyLearning';
 
 function greeting() {
     const h = new Date().getHours();
@@ -35,11 +37,16 @@ export default function Overview() {
         }
     }
 
+    if (!canTeach) return <StudentHome me={me} tenant={tenant} stats={stats} firstName={firstName} />;
+
+    const hasPayments = Object.values(me.tenant.settings?.payments ?? {}).some(Boolean);
     const steps = isAdmin && stats ? [
         { done: true, label: 'Create your institute' },
         { done: stats.courses.total > 0, label: 'Add your first course', to: `/${tenant}/courses?new=1` },
         { done: stats.courses.published > 0, label: 'Publish a course', to: `/${tenant}/courses` },
         { done: students > 0, label: 'Add a student', to: `/${tenant}/people?new=1` },
+        { done: hasPayments, label: 'Add payment details', to: `/${tenant}/settings?tab=payments` },
+        { done: !!me.tenant.settings?.logo_url, label: 'Upload your logo', to: `/${tenant}/settings?tab=branding` },
     ] : [];
     const remaining = steps.filter((s) => !s.done).length;
 
@@ -88,10 +95,9 @@ export default function Overview() {
             {/* Numbers */}
             <section className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-label="Summary">
                 <Stat icon="book" label={canTeach ? 'Courses' : 'Courses available'} value={stats?.courses.total} sub={canTeach && stats ? `${stats.courses.published} published · ${stats.courses.draft} draft` : null} />
-                {canTeach && <Stat icon="sparkle" label="Enrolments" value={stats?.enrollments} sub="Across your courses" />}
-                {isAdmin && <Stat icon="users" label="Students" value={stats ? students : undefined} sub="Can sign in now" />}
-                {isAdmin && <Stat icon="academy" label="Teaching staff" value={stats ? teachers : undefined} sub="Admins and instructors" />}
-                {!canTeach && <Stat icon="sparkle" label="Your enrolments" value={stats?.enrollments} />}
+                {canTeach && <Stat icon="sparkle" label="Enrolments" value={stats?.enrollments} sub={stats?.completions !== undefined ? `${stats.completions} completed` : 'Across your courses'} />}
+                {isAdmin && <Stat icon="users" label="Students" value={stats ? students : undefined} sub={stats ? `${teachers} teaching staff` : null} />}
+                {isAdmin && <Stat icon="wallet" label="Revenue" value={stats ? money(stats.revenue ?? 0) : undefined} sub={stats?.pending_payments ? <Link to={`/${tenant}/payments`} className="font-bold text-amber-700 hover:underline">{stats.pending_payments} payment{stats.pending_payments === 1 ? '' : 's'} to review</Link> : 'Approved payments'} />}
             </section>
 
             <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -111,7 +117,7 @@ export default function Overview() {
                         <ul className="divide-y divide-rule">
                             {stats.recent_courses.map((c) => (
                                 <li key={c.id}>
-                                    <Link to={`/${tenant}/courses`} className="flex items-center gap-4 px-6 py-3.5 transition hover:bg-ink-50/50">
+                                    <Link to={`/${tenant}/courses/${c.id}`} className="flex items-center gap-4 px-6 py-3.5 transition hover:bg-ink-50/50">
                                         <CourseCover course={c} className="h-12 w-16 shrink-0 rounded-md" compact />
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate font-bold text-graphite">{c.title}</p>
@@ -162,6 +168,70 @@ function Stat({ icon, label, value, sub }) {
                 <p className="mt-2 font-display text-3xl font-bold tabular-nums text-ink-deep sm:text-4xl">{value}</p>
             )}
             {sub && <p className="mt-1 hidden text-sm text-pencil sm:block">{sub}</p>}
+        </div>
+    );
+}
+
+function StudentHome({ me, tenant, stats, firstName }) {
+    const items = useMyCourses(tenant);
+    const active = items?.filter((i) => i.status !== 'completed') ?? [];
+    const welcome = me.tenant.settings?.welcome_message;
+
+    return (
+        <div>
+            <header>
+                <p className="text-pencil">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                <h1 className="mt-1 text-3xl font-extrabold sm:text-4xl">{greeting()}, {firstName}</h1>
+                {welcome && <p className="margin-line mt-4 max-w-2xl rounded-xl bg-white py-3 pr-4 pl-5 text-graphite ring-1 ring-rule">{welcome}</p>}
+            </header>
+
+            <section className="mt-8 grid grid-cols-3 divide-x divide-rule rounded-2xl border border-rule bg-white" aria-label="Summary">
+                {[['In progress', items ? active.length : undefined], ['Completed', stats?.completed], ['Certificates', stats?.certificates]].map(([label, value]) => (
+                    <div key={label} className="px-4 py-4 sm:px-6 sm:py-5">
+                        <p className="text-sm text-pencil">{label}</p>
+                        {value === undefined ? <Skeleton className="mt-2 h-8 w-10" /> : <p className="mt-1 font-display text-3xl font-bold text-ink-deep tabular-nums">{value}</p>}
+                    </div>
+                ))}
+            </section>
+
+            <section className="mt-10">
+                <div className="flex items-baseline justify-between">
+                    <h2 className="text-xl font-bold">{active.length ? 'Continue learning' : 'Start learning'}</h2>
+                    <Link to={`/${tenant}/my`} className="text-sm font-bold text-ink hover:underline">My learning</Link>
+                </div>
+                <div className="mt-4">
+                    {items === null ? <Skeleton className="h-44 rounded-2xl" /> : active.length ? (
+                        <div className="grid gap-4">
+                            {active.slice(0, 3).map((item) => <MyCourseCard key={item.course.id} item={item} tenant={tenant} wide />)}
+                        </div>
+                    ) : (
+                        <div className="ruled rounded-2xl border border-dashed border-rule bg-white/60 px-6 py-12 text-center">
+                            <p className="text-lg font-bold text-ink-deep">Find your first course</p>
+                            <p className="mt-1 text-pencil">Browse what {me.tenant.name} offers and enrol in a click.</p>
+                            <Button className="mt-5" as={Link} to={`/${tenant}/courses`} iconRight="arrowRight">Browse courses</Button>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {stats?.recent_courses?.length > 0 && (
+                <section className="mt-10">
+                    <h2 className="text-xl font-bold">New from {me.tenant.name}</h2>
+                    <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {stats.recent_courses.slice(0, 3).map((c) => (
+                            <li key={c.id}>
+                                <Link to={`/${tenant}/courses/${c.id}`} className="group block overflow-hidden rounded-2xl border border-rule bg-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-16px_rgba(18,40,95,.35)]">
+                                    <CourseCover course={c} className="h-28 w-full" />
+                                    <div className="p-4">
+                                        <p className="font-bold text-ink-deep group-hover:underline">{c.title}</p>
+                                        {c.instructor && <p className="text-sm text-pencil">{c.instructor.name}</p>}
+                                    </div>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
         </div>
     );
 }

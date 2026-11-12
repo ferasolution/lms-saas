@@ -10,11 +10,11 @@ class Order extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['user_id','course_id','coupon_id','amount','discount','total','currency','gateway','gateway_ref','status','paid_at'];
+    protected $fillable = ['user_id','course_id','coupon_id','amount','discount','total','currency','gateway','gateway_ref','payment_reference','note','status','paid_at','reviewed_at'];
 
     protected function casts(): array
     {
-        return ['amount' => 'decimal:2', 'discount' => 'decimal:2', 'total' => 'decimal:2', 'paid_at' => 'datetime'];
+        return ['amount' => 'decimal:2', 'discount' => 'decimal:2', 'total' => 'decimal:2', 'paid_at' => 'datetime', 'reviewed_at' => 'datetime'];
     }
 
     public function user(): BelongsTo
@@ -25,6 +25,11 @@ class Order extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
     }
 
     public function coupon(): BelongsTo

@@ -15,6 +15,16 @@ import TenantLayout from './pages/TenantLayout';
 import Overview from './pages/Overview';
 import Courses from './pages/Courses';
 import People from './pages/People';
+import CoursePage from './pages/course/CoursePage';
+import QuizEditor from './pages/course/QuizEditor';
+import Player from './pages/Player';
+import MyLearning from './pages/MyLearning';
+import { CertificateList, PublicCertificate, TenantCertificate } from './pages/Certificates';
+import Payments from './pages/Payments';
+import Settings from './pages/Settings';
+import Profile from './pages/Profile';
+import PlatformConsole, { PlatformLogin } from './pages/Platform';
+import Verify from './pages/Verify';
 import PlatformSetup from './pages/PlatformSetup';
 import Install from './pages/Install';
 
@@ -25,7 +35,7 @@ function ScrollAndTitle() {
     useEffect(() => {
         if (!hash) window.scrollTo(0, 0);
         const last = pathname.split('/').filter(Boolean).pop();
-        const section = { courses: 'Courses', people: 'People', login: 'Sign in' }[last];
+        const section = { courses: 'Courses', people: 'People', login: 'Sign in', my: 'My learning', certificates: 'Certificates', payments: 'Payments', settings: 'Settings', profile: 'Profile', platform: 'Platform', verify: 'Verify certificate' }[last];
         document.title = TITLES[pathname] ?? (section ? `${section} · Fera Learn` : 'Fera Learn');
     }, [pathname, hash]);
     return null;
@@ -42,11 +52,25 @@ function App() {
                     <Route path="/login" element={<FindInstitute />} />
                     <Route path="/install" element={<Install />} />
                     <Route path="/platform/setup" element={<PlatformSetup />} />
+                    <Route path="/platform/login" element={<PlatformLogin />} />
+                    <Route path="/platform" element={<PlatformConsole />} />
+                    <Route path="/verify" element={<Verify />} />
+                    <Route path="/verify/:code" element={<PublicCertificate />} />
                     <Route path="/:tenant/login" element={<Login />} />
                     <Route path="/:tenant" element={<TenantLayout />}>
                         <Route index element={<Overview />} />
+                        <Route path="my" element={<MyLearning />} />
                         <Route path="courses" element={<Courses />} />
+                        <Route path="courses/:id" element={<CoursePage />} />
+                        <Route path="courses/:id/quiz/:quizId" element={<QuizEditor />} />
+                        <Route path="learn/:courseId" element={<Player />} />
+                        <Route path="learn/:courseId/:lessonId" element={<Player />} />
+                        <Route path="certificates" element={<CertificateList />} />
+                        <Route path="certificates/:code" element={<TenantCertificate />} />
                         <Route path="people" element={<People />} />
+                        <Route path="payments" element={<Payments />} />
+                        <Route path="settings" element={<Settings />} />
+                        <Route path="profile" element={<Profile />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
