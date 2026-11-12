@@ -12,6 +12,7 @@ use App\Models\LessonProgress;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Learning;
+use App\Services\Notifier;
 use App\Support\Payments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,6 +47,25 @@ class LearningController extends Controller
             return response()->json(['status' => 'enrolled', 'progress_percent' => $enrollment->progress_percent], 201);
         }
 
+        // Optional discount code.
+        $coupon = null;
+        $total = $course->effectivePrice();
+        if ($request->filled('coupon')) {
+            [$coupon, $error] = ToolsController::findCoupon((string) $request->input('coupon'), $course);
+            if ($error) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['coupon' => $error]);
+            }
+            [, $total] = ToolsController::applyCoupon($coupon, $course);
+        }
+
+        // A 100% code means nothing to pay.
+        if ($total <= 0 && $coupon) {
+            $coupon->increment('used_count');
+            $enrollment = $this->learning->enrol($user, $course);
+
+            return response()->json(['status' => 'enrolled', 'progress_percent' => $enrollment->progress_percent], 201);
+        }
+
         $data = $request->validate([
             'payment_method' => ['required', Rule::in(array_keys(Payments::METHODS))],
             'payment_reference' => ['required', 'string', 'max:120'],
@@ -59,8 +79,9 @@ class LearningController extends Controller
 
         $order->fill([
             'amount' => (float) $course->price,
-            'discount' => max(0, (float) $course->price - $course->effectivePrice()),
-            'total' => $course->effectivePrice(),
+            'discount' => max(0, round((float) $course->price - $total, 2)),
+            'total' => $total,
+            'coupon_id' => $coupon?->id,
             'currency' => $course->currency,
             'gateway' => $data['payment_method'],
             'payment_reference' => $data['payment_reference'],
@@ -71,6 +92,8 @@ class LearningController extends Controller
         $order->course_id = $course->id;
         $order->save();
         ActivityLog::record('order.submitted', "{$user->name} sent a payment of {$order->currency} {$order->total} for “{$course->title}”", ['order_id' => $order->id]);
+        app(Notifier::class)->send(app(Notifier::class)->roleIds($course->tenant_id, [User::ROLE_ADMIN]), 'payment',
+            "{$user->name} paid for “{$course->title}”", "{$order->currency} {$order->total} · ref {$order->payment_reference}", '/payments', $course->tenant_id);
 
         return response()->json(['status' => 'pending', 'order_id' => $order->id], 202);
     }
@@ -115,6 +138,7 @@ class LearningController extends Controller
         [$open] = $this->learning->lessonAccess($user, $lesson, $course, $enrollment);
         abort_unless($open, 403, 'This lesson is not open yet.');
         abort_if($lesson->type === 'quiz', 422, 'Pass the quiz to complete this lesson.');
+        abort_if($lesson->type === 'assignment', 422, 'Hand in your work to complete this lesson.');
 
         $this->learning->completeLesson($user, $lesson);
         $enrollment = $this->learning->recalculate($enrollment);

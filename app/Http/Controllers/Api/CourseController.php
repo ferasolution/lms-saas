@@ -26,12 +26,20 @@ class CourseController extends Controller
 
         $courses = Course::query()
             ->with(['instructor', 'category'])
-            ->withCount('enrollments')
+            ->withCount(['enrollments', 'reviews'])
+            ->withAvg('reviews', 'rating')
             ->when($user->hasRole(User::ROLE_INSTRUCTOR), fn ($q) => $q->where('instructor_id', $user->id))
             ->when(! $user->hasRole(User::ROLE_ADMIN, User::ROLE_INSTRUCTOR), fn ($q) => $q->published())
             ->when($request->filled('status') && $user->hasRole(User::ROLE_ADMIN, User::ROLE_INSTRUCTOR),
                 fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('search'), fn ($q) => $q->where('title', 'like', '%'.$request->string('search').'%'))
+            ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->integer('category_id')))
+            ->when($request->filled('level'), fn ($q) => $q->where('level', $request->string('level')))
+            ->when($request->input('price') === 'free', fn ($q) => $q->where(fn ($q) => $q->where('is_free', true)->orWhere('price', 0)))
+            ->when($request->input('price') === 'paid', fn ($q) => $q->where('is_free', false)->where('price', '>', 0))
+            ->when($request->input('sort') === 'popular', fn ($q) => $q->orderByDesc('enrollments_count'))
+            ->when($request->input('sort') === 'rating', fn ($q) => $q->orderByDesc('reviews_avg_rating'))
+            ->when($request->input('sort') === 'title', fn ($q) => $q->orderBy('title'))
             ->latest()
             ->paginate(min((int) $request->integer('per_page', 15) ?: 15, 100));
 

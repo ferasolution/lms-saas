@@ -20,7 +20,10 @@ use Illuminate\Validation\Rule;
  */
 class CurriculumController extends Controller
 {
-    public const LESSON_TYPES = ['video', 'text', 'pdf', 'live', 'quiz'];
+    public const LESSON_TYPES = ['video', 'text', 'pdf', 'live', 'quiz', 'assignment'];
+
+    /** lesson_id => my submission summary, for assignment lessons. */
+    protected array $submissions = [];
 
     public function __construct(protected Learning $learning) {}
 
@@ -33,6 +36,10 @@ class CurriculumController extends Controller
         $course->load(['instructor', 'category', 'sections.lessons.quiz.questions']);
         $enrollment = $this->learning->enrollment($user, $course);
         $done = array_flip($this->learning->completedLessonIds($user, $course));
+        $this->submissions = \App\Models\AssignmentSubmission::where('user_id', $user->id)
+            ->whereIn('lesson_id', Lesson::where('course_id', $course->id)->where('type', 'assignment')->select('id'))
+            ->get(['lesson_id', 'status', 'grade'])->keyBy('lesson_id')
+            ->map(fn ($s) => ['status' => $s->status, 'grade' => $s->grade])->all();
         $manage = $this->learning->canManage($user, $course);
 
         $sections = $course->sections->map(fn (CourseSection $s) => [
@@ -64,6 +71,8 @@ class CurriculumController extends Controller
                 'instructor' => $course->instructor?->only('id', 'name'),
                 'category' => $course->category?->only('id', 'name'),
                 'students_count' => $course->enrollments()->count(),
+                'rating' => ($avg = $course->reviews()->avg('rating')) !== null ? round((float) $avg, 1) : null,
+                'reviews_count' => $course->reviews()->count(),
             ],
             'sections' => $sections,
             'stats' => [
@@ -222,6 +231,7 @@ class CurriculumController extends Controller
             'duration_seconds' => ['nullable', 'integer', 'min:0', 'max:86400'],
             'is_preview' => ['sometimes', 'boolean'],
             'drip_days' => ['nullable', 'integer', 'min:0', 'max:365'],
+            'max_points' => ['nullable', 'integer', 'min:1', 'max:1000'],
         ]);
     }
 
@@ -239,6 +249,8 @@ class CurriculumController extends Controller
             'duration_seconds' => (int) $lesson->duration_seconds,
             'is_preview' => (bool) $lesson->is_preview,
             'drip_days' => $lesson->drip_days,
+            'max_points' => $lesson->type === 'assignment' ? ($lesson->max_points ?: 100) : null,
+            'submission' => $this->submissions[$lesson->id] ?? null,
             'position' => $lesson->position,
             'completed' => $completed,
             'locked' => ! $open,

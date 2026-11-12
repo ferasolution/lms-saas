@@ -29,6 +29,8 @@ class CourseResource extends JsonResource
             'instructor' => $this->whenLoaded('instructor', fn () => $this->instructor?->only('id', 'name')),
             'category' => $this->whenLoaded('category', fn () => $this->category?->only('id', 'name', 'slug')),
             'enrollments_count' => $this->whenCounted('enrollments'),
+            'reviews_count' => $this->whenCounted('reviews'),
+            'rating' => $this->reviews_avg_rating !== null ? round((float) $this->reviews_avg_rating, 1) : null,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

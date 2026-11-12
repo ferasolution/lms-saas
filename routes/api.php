@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\Central\ConsoleController;
 use App\Http\Controllers\Api\Central\PlatformController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\CurriculumController;
+use App\Http\Controllers\Api\EngagementController;
+use App\Http\Controllers\Api\ToolsController;
 use App\Http\Controllers\Api\LearningController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\QuizController;
@@ -60,6 +62,13 @@ Route::prefix('platform')->group(function () {
         Route::patch('users/{user}', [ConsoleController::class, 'updateUser']);
         Route::get('activity', [ConsoleController::class, 'activity']);
         Route::get('health', [ConsoleController::class, 'health']);
+        Route::get('plans', [ConsoleController::class, 'plans']);
+        Route::post('plans', [ConsoleController::class, 'createPlan']);
+        Route::patch('plans/{plan}', [ConsoleController::class, 'updatePlan']);
+        Route::get('announcements', [ConsoleController::class, 'announcements']);
+        Route::post('announcements', [ConsoleController::class, 'broadcast']);
+        Route::get('exports/institutes.csv', [ConsoleController::class, 'exportTenants']);
+        Route::get('exports/users.csv', [ConsoleController::class, 'exportUsers']);
         Route::get('settings', [ConsoleController::class, 'settings']);
         Route::put('settings', [ConsoleController::class, 'updateSettings']);
     });
@@ -85,6 +94,28 @@ Route::middleware('tenant')->group(function () {
         Route::get('courses/{course}', [CourseController::class, 'show']);
         Route::get('courses/{course}/curriculum', [CurriculumController::class, 'show']);
 
+        // Notifications, announcements, search
+        Route::get('notifications', [EngagementController::class, 'notifications']);
+        Route::post('notifications/read', [EngagementController::class, 'readNotifications']);
+        Route::get('announcements', [EngagementController::class, 'announcements']);
+        Route::post('announcements', [EngagementController::class, 'storeAnnouncement'])->middleware('role:admin,instructor');
+        Route::delete('announcements/{announcement}', [EngagementController::class, 'destroyAnnouncement']);
+        Route::get('search', [ToolsController::class, 'search']);
+        Route::get('categories', [ToolsController::class, 'categories']);
+
+        // Reviews and discussion
+        Route::get('courses/{course}/reviews', [EngagementController::class, 'reviews']);
+        Route::post('courses/{course}/reviews', [EngagementController::class, 'storeReview']);
+        Route::delete('reviews/{review}', [EngagementController::class, 'destroyReview']);
+        Route::get('lessons/{lesson}/comments', [EngagementController::class, 'comments']);
+        Route::post('lessons/{lesson}/comments', [EngagementController::class, 'storeComment'])->middleware('throttle:30,1');
+        Route::delete('comments/{comment}', [EngagementController::class, 'destroyComment']);
+
+        // Assignments (student side) and coupons at checkout
+        Route::get('lessons/{lesson}/submission', [EngagementController::class, 'mySubmission']);
+        Route::post('lessons/{lesson}/submission', [EngagementController::class, 'submit']);
+        Route::post('courses/{course}/coupon-check', [ToolsController::class, 'checkCoupon'])->middleware('throttle:20,1');
+
         // Learning
         Route::post('courses/{course}/enrol', [LearningController::class, 'enrol'])->middleware('throttle:20,1');
         Route::get('my/courses', [LearningController::class, 'myCourses']);
@@ -109,6 +140,10 @@ Route::middleware('tenant')->group(function () {
             Route::put('courses/{course}/order', [CurriculumController::class, 'reorder']);
             Route::put('quizzes/{quiz}', [QuizController::class, 'update']);
             Route::post('uploads', [UploadController::class, 'store'])->middleware('throttle:30,1');
+            Route::post('courses/{course}/duplicate', [ToolsController::class, 'duplicate']);
+            Route::get('submissions', [EngagementController::class, 'submissions']);
+            Route::patch('submissions/{submission}', [EngagementController::class, 'grade']);
+            Route::get('exports/courses/{course}/students.csv', [ToolsController::class, 'exportCourseStudents']);
 
             // Who is enrolled
             Route::get('courses/{course}/students', [LearningController::class, 'students']);
@@ -122,6 +157,16 @@ Route::middleware('tenant')->group(function () {
             Route::patch('users/{user}', [UserController::class, 'update']);
 
             Route::patch('settings', [SettingsController::class, 'update']);
+            Route::post('categories', [ToolsController::class, 'storeCategory']);
+            Route::patch('categories/{category}', [ToolsController::class, 'updateCategory']);
+            Route::delete('categories/{category}', [ToolsController::class, 'destroyCategory']);
+            Route::get('coupons', [ToolsController::class, 'coupons']);
+            Route::post('coupons', [ToolsController::class, 'storeCoupon']);
+            Route::patch('coupons/{coupon}', [ToolsController::class, 'updateCoupon']);
+            Route::delete('coupons/{coupon}', [ToolsController::class, 'destroyCoupon']);
+            Route::post('users/import', [ToolsController::class, 'importPeople'])->middleware('throttle:10,1');
+            Route::get('exports/people.csv', [ToolsController::class, 'exportPeople']);
+            Route::get('exports/payments.csv', [ToolsController::class, 'exportPayments']);
             Route::get('billing', [BillingController::class, 'show']);
             Route::post('billing/subscribe', [BillingController::class, 'subscribe'])->middleware('throttle:10,1');
             Route::get('orders', [OrderController::class, 'index']);

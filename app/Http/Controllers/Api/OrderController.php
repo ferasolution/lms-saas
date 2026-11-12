@@ -58,7 +58,13 @@ class OrderController extends Controller
 
             $order->load(['user', 'course']);
             $this->learning->enrol($order->user, $order->course);
+            if ($order->coupon_id) {
+                \App\Models\Coupon::whereKey($order->coupon_id)->increment('used_count');
+            }
         });
+
+        app(\App\Services\Notifier::class)->send($order->user_id, 'payment_approved', "You’re in: {$order->course?->title}",
+            'Your payment was confirmed. Start learning any time.', "/courses/{$order->course_id}");
 
         ActivityLog::record('order.approved', "Approved {$order->currency} {$order->total} from {$order->user?->name} for “{$order->course?->title}”", ['order_id' => $order->id]);
 
@@ -70,6 +76,8 @@ class OrderController extends Controller
         abort_unless($order->status === 'pending', 422, 'Only pending payments can be rejected.');
         $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
 
+        app(\App\Services\Notifier::class)->send($order->user_id, 'payment_rejected', 'We couldn’t confirm your payment',
+            ($data['note'] ?? null) ?: 'Please check the transaction ID and send it again from the course page.', "/courses/{$order->course_id}");
         $order->status = 'failed';
         $order->note = $data['note'] ?? $order->note;
         $order->reviewed_by = $request->user()->id;

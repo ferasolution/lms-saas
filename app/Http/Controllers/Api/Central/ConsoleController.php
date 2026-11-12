@@ -237,6 +237,8 @@ class ConsoleController extends Controller
             $subscription->reviewed_at = now();
             $subscription->save();
 
+            app(\App\Services\Notifier::class)->send(app(\App\Services\Notifier::class)->roleIds($tenant->id, [User::ROLE_ADMIN]), 'billing',
+                "You’re on {$plan->name}", 'Your payment was confirmed. Your plan runs until '.$tenant->plan_ends_at->toFormattedDateString().'.', '/billing', $tenant->id);
             ActivityLog::record('subscription.approved', "Approved {$plan->name} × {$subscription->months} ".($subscription->months === 1 ? 'month' : 'months')." for {$tenant->name}", ['subscription_id' => $subscription->id], $tenant->id, $request->user());
         });
 
@@ -255,6 +257,8 @@ class ConsoleController extends Controller
         $subscription->save();
 
         $reason = ! empty($data['note']) ? ": {$data['note']}" : '';
+        app(\App\Services\Notifier::class)->send(app(\App\Services\Notifier::class)->roleIds($subscription->tenant_id, [User::ROLE_ADMIN]), 'billing',
+            'We couldn’t confirm your plan payment', $data['note'] ?? 'Please check the transaction ID and send it again.', '/billing', $subscription->tenant_id);
         ActivityLog::record('subscription.rejected', "Rejected a plan payment{$reason}", ['subscription_id' => $subscription->id], $subscription->tenant_id, $request->user());
 
         return response()->json($this->subscriptionRow($subscription->load(['tenant', 'plan', 'requester', 'reviewer']), true));
@@ -530,6 +534,103 @@ class ConsoleController extends Controller
         ActivityLog::record('platform.settings', 'Updated platform settings', [], null, $request->user());
 
         return $this->settings();
+    }
+
+    /* ------------------------------------------------------------ plans */
+
+    public function plans(): JsonResponse
+    {
+        $counts = Tenant::whereNotNull('plan_id')->where('plan_ends_at', '>', now())
+            ->selectRaw('plan_id, count(*) as total')->groupBy('plan_id')->pluck('total', 'plan_id');
+
+        return response()->json(['data' => Plan::orderBy('price_monthly')->get()->map(fn (Plan $p) => $p->only(
+            'id', 'name', 'slug', 'price_monthly', 'currency', 'max_students', 'max_courses', 'storage_mb', 'is_active',
+        ) + ['subscribers' => (int) ($counts[$p->id] ?? 0)])]);
+    }
+
+    public function createPlan(Request $request): JsonResponse
+    {
+        return $this->savePlan($request, null);
+    }
+
+    public function updatePlan(Request $request, Plan $plan): JsonResponse
+    {
+        return $this->savePlan($request, $plan);
+    }
+
+    protected function savePlan(Request $request, ?Plan $plan): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => [$plan ? 'sometimes' : 'required', 'string', 'max:60'],
+            'price_monthly' => [$plan ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:100000'],
+            'max_students' => ['nullable', 'integer', 'min:1'],
+            'max_courses' => ['nullable', 'integer', 'min:1'],
+            'storage_mb' => ['nullable', 'integer', 'min:1'],
+            'is_active' => ['sometimes', 'boolean'],
+        ]);
+
+        if ($plan) {
+            abort_if($plan->slug === 'free' && isset($data['price_monthly']) && (float) $data['price_monthly'] > 0, 422, 'The Free plan must stay free.');
+            abort_if($plan->slug === 'free' && array_key_exists('is_active', $data) && ! $data['is_active'], 422, 'The Free plan can’t be turned off; institutes fall back to it.');
+            $plan->update($data);
+        } else {
+            $slug = \Illuminate\Support\Str::slug($data['name']) ?: 'plan';
+            abort_if(Plan::where('slug', $slug)->exists(), 422, 'A plan with this name already exists.');
+            $plan = Plan::create($data + ['slug' => $slug, 'currency' => 'USD', 'is_active' => true]);
+        }
+
+        ActivityLog::record('platform.plan', "Saved plan {$plan->name}: \${$plan->price_monthly}/month", ['plan_id' => $plan->id], null, $request->user());
+
+        return $this->plans();
+    }
+
+    /* ------------------------------------------------------------ announcements to institutes */
+
+    public function announcements(): JsonResponse
+    {
+        return response()->json(['data' => \App\Models\Announcement::whereNull('tenant_id')->latest('id')->limit(50)
+            ->get(['id', 'title', 'body', 'created_at'])]);
+    }
+
+    public function broadcast(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:200'],
+            'body' => ['required', 'string', 'max:5000'],
+        ]);
+
+        $a = new \App\Models\Announcement($data + ['audience' => 'admins']);
+        $a->user_id = $request->user()->id;
+        $a->save();
+
+        $admins = User::where('role', User::ROLE_ADMIN)->whereNotNull('tenant_id')->where('is_active', true)->pluck('id')->all();
+        app(\App\Services\Notifier::class)->send($admins, 'platform', $data['title'], \Illuminate\Support\Str::limit($data['body'], 140), '/');
+        ActivityLog::record('platform.announcement', "Sent “{$data['title']}” to ".count($admins).' institute admins', [], null, $request->user());
+
+        return response()->json(['id' => $a->id, 'sent_to' => count($admins)], 201);
+    }
+
+    /* ------------------------------------------------------------ exports */
+
+    public function exportTenants(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $rows = Tenant::with('plan')->withCount(['users', 'courses'])->latest()->get()->map(fn (Tenant $t) => [
+            $t->name, $t->slug, $t->type, $t->status, $this->billing->effective($t)['plan']?->name,
+            optional($t->trial_ends_at)->toDateString(), optional($t->plan_ends_at)->toDateString(),
+            $t->users_count, $t->courses_count, $t->created_at?->toDateString(),
+        ]);
+
+        return \App\Support\Csv::download('institutes.csv', ['Name', 'Address', 'Type', 'Status', 'Plan', 'Trial ends', 'Plan ends', 'People', 'Courses', 'Joined'], $rows);
+    }
+
+    public function exportUsers(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $rows = User::with('tenant')->whereNotNull('tenant_id')->orderBy('tenant_id')->get()->map(fn (User $u) => [
+            $u->name, $u->email, $u->role, $u->tenant?->name, $u->is_active ? 'active' : 'disabled',
+            optional($u->last_login_at)->toDateTimeString(), $u->created_at?->toDateString(),
+        ]);
+
+        return \App\Support\Csv::download('users.csv', ['Name', 'Email', 'Role', 'Institute', 'Access', 'Last sign-in', 'Joined'], $rows);
     }
 
     /* ------------------------------------------------------------ helpers */

@@ -135,6 +135,10 @@ class Learning
             $certificate->code = (string) Str::uuid();
             $certificate->issued_at = now();
             $certificate->save();
+
+            $title = Course::withoutGlobalScope('tenant')->whereKey($enrollment->course_id)->value('title');
+            app(Notifier::class)->send($enrollment->user_id, 'certificate', "Certificate earned: {$title}",
+                'Congratulations on finishing the course!', "/certificates/{$certificate->code}", $enrollment->tenant_id);
         }
 
         return $certificate;

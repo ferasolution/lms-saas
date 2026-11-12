@@ -12,7 +12,7 @@ class Lesson extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['course_id','section_id','title','summary','type','content','video_provider','video_url','file_path','live_url','live_starts_at','duration_seconds','is_preview','drip_days','position'];
+    protected $fillable = ['course_id','section_id','title','summary','type','content','video_provider','video_url','file_path','live_url','live_starts_at','duration_seconds','is_preview','drip_days','max_points','position'];
 
     protected function casts(): array
     {
