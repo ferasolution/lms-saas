@@ -21,13 +21,14 @@ class Tenant extends Model
     public const STATUS_SUSPENDED = 'suspended';
 
     protected $fillable = [
-        'name', 'slug', 'type', 'plan_id', 'status', 'trial_ends_at', 'custom_domain', 'settings',
+        'name', 'slug', 'type', 'plan_id', 'status', 'trial_ends_at', 'plan_ends_at', 'custom_domain', 'settings',
     ];
 
     protected function casts(): array
     {
         return [
             'trial_ends_at' => 'datetime',
+            'plan_ends_at' => 'datetime',
             'settings' => 'array',
         ];
     }

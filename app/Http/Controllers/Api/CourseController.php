@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CourseResource;
 use App\Models\Course;
+use App\Models\ActivityLog;
 use App\Models\User;
+use App\Services\Billing;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -39,6 +42,7 @@ class CourseController extends Controller
     {
         $user = $request->user();
         $data = $this->validated($request);
+        app(Billing::class)->ensureCanAdd(app(TenantManager::class)->current(), 'courses');
 
         $course = new Course($data);
         // Instructors always own what they create; admins may assign an instructor.
@@ -47,6 +51,7 @@ class CourseController extends Controller
             : $user->id;
         $course->save();
         $course->refresh();
+        ActivityLog::record('course.created', "Created course “{$course->title}”", ['course_id' => $course->id]);
 
         return (new CourseResource($course->load(['instructor', 'category'])))
             ->response()
@@ -70,7 +75,11 @@ class CourseController extends Controller
             unset($data['instructor_id']);
         }
 
+        $wasPublished = $course->status === Course::STATUS_PUBLISHED;
         $course->update($data);
+        if (! $wasPublished && $course->status === Course::STATUS_PUBLISHED) {
+            ActivityLog::record('course.published', "Published “{$course->title}”", ['course_id' => $course->id]);
+        }
 
         return new CourseResource($course->load(['instructor', 'category']));
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
+use App\Models\ActivityLog;
 use App\Models\User;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
@@ -39,6 +40,9 @@ class AuthController extends Controller
                 'email' => 'Your account has been disabled. Please contact your institute.',
             ]);
         }
+
+        $user->forceFill(['last_login_at' => now()])->saveQuietly();
+        ActivityLog::record('auth.login', "{$user->name} signed in", [], $user->tenant_id, $user);
 
         return response()->json([
             'tenant' => new TenantResource($tenants->current()->load('plan')),

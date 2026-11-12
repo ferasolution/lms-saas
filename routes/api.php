@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BillingController;
+use App\Http\Controllers\Api\Central\ConsoleController;
 use App\Http\Controllers\Api\Central\PlatformController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\CurriculumController;
@@ -44,8 +46,20 @@ Route::prefix('platform')->group(function () {
     Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
         Route::get('me', [PlatformController::class, 'me']);
         Route::get('stats', [PlatformController::class, 'stats']);
-        Route::get('tenants', [PlatformController::class, 'tenants']);
-        Route::patch('tenants/{tenant}', [PlatformController::class, 'updateTenant']);
+        Route::get('overview', [ConsoleController::class, 'overview']);
+        Route::get('tenants', [ConsoleController::class, 'tenants']);
+        Route::get('tenants/{tenant}', [ConsoleController::class, 'tenant']);
+        Route::patch('tenants/{tenant}', [ConsoleController::class, 'updateTenant']);
+        Route::post('tenants/{tenant}/impersonate', [ConsoleController::class, 'impersonate']);
+        Route::get('subscriptions', [ConsoleController::class, 'subscriptions']);
+        Route::post('subscriptions/{subscription}/approve', [ConsoleController::class, 'approveSubscription']);
+        Route::post('subscriptions/{subscription}/reject', [ConsoleController::class, 'rejectSubscription']);
+        Route::get('payments', [ConsoleController::class, 'payments']);
+        Route::get('users', [ConsoleController::class, 'users']);
+        Route::get('activity', [ConsoleController::class, 'activity']);
+        Route::get('health', [ConsoleController::class, 'health']);
+        Route::get('settings', [ConsoleController::class, 'settings']);
+        Route::put('settings', [ConsoleController::class, 'updateSettings']);
     });
 });
 
@@ -106,6 +120,8 @@ Route::middleware('tenant')->group(function () {
             Route::patch('users/{user}', [UserController::class, 'update']);
 
             Route::patch('settings', [SettingsController::class, 'update']);
+            Route::get('billing', [BillingController::class, 'show']);
+            Route::post('billing/subscribe', [BillingController::class, 'subscribe'])->middleware('throttle:10,1');
             Route::get('orders', [OrderController::class, 'index']);
             Route::post('orders/{order}/approve', [OrderController::class, 'approve']);
             Route::post('orders/{order}/reject', [OrderController::class, 'reject']);

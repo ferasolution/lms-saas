@@ -16,6 +16,7 @@ class TenantResource extends JsonResource
             'type' => $this->type,
             'status' => $this->status,
             'trial_ends_at' => $this->trial_ends_at,
+            'plan_ends_at' => $this->plan_ends_at,
             'plan' => $this->whenLoaded('plan', fn () => $this->plan?->only('id', 'name', 'slug')),
             'settings' => $this->settings ?? (object) [],
             'users_count' => $this->whenCounted('users'),

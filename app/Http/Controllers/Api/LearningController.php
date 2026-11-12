@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\Enrollment;
@@ -68,6 +69,7 @@ class LearningController extends Controller
         $order->user_id = $user->id;
         $order->course_id = $course->id;
         $order->save();
+        ActivityLog::record('order.submitted', "{$user->name} sent a payment of {$order->currency} {$order->total} for “{$course->title}”", ['order_id' => $order->id]);
 
         return response()->json(['status' => 'pending', 'order_id' => $order->id], 202);
     }

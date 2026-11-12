@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
+use App\Models\ActivityLog;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
@@ -60,6 +61,8 @@ class TenantRegistrationController extends Controller
 
             return [$tenant, $admin];
         });
+
+        ActivityLog::record('tenant.registered', "New {$tenant->type} “{$tenant->name}” signed up", ['slug' => $tenant->slug], $tenant->id, $admin);
 
         return response()->json([
             'tenant' => new TenantResource($tenant->load('plan')),

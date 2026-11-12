@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Services\Learning;
 use Illuminate\Http\JsonResponse;
@@ -58,6 +59,8 @@ class OrderController extends Controller
             $order->load(['user', 'course']);
             $this->learning->enrol($order->user, $order->course);
         });
+
+        ActivityLog::record('order.approved', "Approved {$order->currency} {$order->total} from {$order->user?->name} for “{$order->course?->title}”", ['order_id' => $order->id]);
 
         return response()->json($this->payload($order->load(['user', 'course', 'reviewer'])));
     }

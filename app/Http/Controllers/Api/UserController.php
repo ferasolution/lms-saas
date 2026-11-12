@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\ActivityLog;
 use App\Models\User;
+use App\Services\Billing;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -43,6 +46,10 @@ class UserController extends Controller
             'password' => ['required', Password::min(8)],
         ]);
 
+        if ($data['role'] === User::ROLE_STUDENT) {
+            app(Billing::class)->ensureCanAdd(app(TenantManager::class)->current(), 'students');
+        }
+
         $user = new User([
             'name' => $data['name'],
             'email' => strtolower($data['email']),
@@ -52,6 +59,8 @@ class UserController extends Controller
         $user->role = $data['role'];
         $user->tenant_id = $tenantId;
         $user->save();
+
+        ActivityLog::record('user.created', "Added {$user->role} {$user->name}", ['user_id' => $user->id]);
 
         return (new UserResource($user))->response()->setStatusCode(201);
     }

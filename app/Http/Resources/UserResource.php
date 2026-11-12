@@ -17,6 +17,7 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'avatar' => $this->avatar,
             'is_active' => (bool) $this->is_active,
+            'last_login_at' => $this->last_login_at,
             'created_at' => $this->created_at,
         ];
     }
