@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\School\ExamController;
 use App\Http\Controllers\Api\School\FeeController;
 use App\Http\Controllers\Api\School\HrController;
 use App\Http\Controllers\Api\School\AccountsController;
+use App\Http\Controllers\Api\School\CommunityController;
+use App\Http\Controllers\Api\School\OperationsController;
 use App\Http\Controllers\Api\School\OverviewController;
 use App\Http\Controllers\Api\School\StructureController;
 use App\Http\Controllers\Api\School\StudentController;
@@ -156,6 +158,25 @@ Route::middleware('tenant')->group(function () {
             Route::get('students/{student}', [StudentController::class, 'show']);
             Route::get('fees/mine', [FeeController::class, 'family'])->middleware('role:parent,student');
             Route::get('exams/mine', [ExamController::class, 'mine'])->middleware('role:parent,student');
+
+            // Everyone: messages, helpdesk, meetings, events, library, transport
+            Route::get('messages/contacts', [CommunityController::class, 'contacts']);
+            Route::get('messages', [CommunityController::class, 'conversations']);
+            Route::post('messages', [CommunityController::class, 'start'])->middleware('throttle:20,1');
+            Route::get('messages/{conversation}', [CommunityController::class, 'thread']);
+            Route::post('messages/{conversation}', [CommunityController::class, 'reply'])->middleware('throttle:60,1');
+            Route::get('helpdesk', [CommunityController::class, 'tickets']);
+            Route::post('helpdesk', [CommunityController::class, 'openTicket'])->middleware('throttle:10,1');
+            Route::get('helpdesk/{ticket}', [CommunityController::class, 'ticket']);
+            Route::post('helpdesk/{ticket}/replies', [CommunityController::class, 'replyTicket'])->middleware('throttle:30,1');
+            Route::get('meetings', [CommunityController::class, 'ptmEvents']);
+            Route::post('meetings/{event}/book', [CommunityController::class, 'book'])->middleware('role:parent');
+            Route::patch('meeting-bookings/{booking}', [CommunityController::class, 'updateBooking']);
+            Route::get('events', [CommunityController::class, 'events']);
+            Route::post('events/{event}/respond', [CommunityController::class, 'respond'])->middleware('role:parent');
+            Route::get('library/books', [OperationsController::class, 'books']);
+            Route::get('library/mine', [OperationsController::class, 'myLoans']);
+            Route::get('transport/mine', [OperationsController::class, 'myTransport']);
             Route::get('exams/{exam}/report/{student}', [ExamController::class, 'report']);
             Route::get('fees/invoices/{invoice}', [FeeController::class, 'show']);
             Route::post('fees/invoices/{invoice}/report-payment', [FeeController::class, 'reportPayment'])->middleware(['role:parent,student', 'throttle:10,1']);
@@ -177,6 +198,8 @@ Route::middleware('tenant')->group(function () {
                 Route::get('diary/{entry}/submissions', [DiaryController::class, 'submissions']);
                 Route::patch('homework/{submission}', [DiaryController::class, 'check']);
 
+                Route::post('events', [CommunityController::class, 'storeEvent']);
+                Route::get('events/{event}/responses', [CommunityController::class, 'eventResponses']);
                 Route::get('hr/me', [HrController::class, 'me']);
                 Route::post('hr/me/leave', [HrController::class, 'requestLeave'])->middleware('throttle:10,1');
                 Route::get('hr/payslips/{payslip}', [HrController::class, 'payslip']);
@@ -214,6 +237,36 @@ Route::middleware('tenant')->group(function () {
                 Route::post('students/{student}/guardians', [StudentController::class, 'addGuardian']);
                 Route::delete('students/{student}/guardians/{guardian}', [StudentController::class, 'removeGuardian']);
                 Route::get('exports/students.csv', [StudentController::class, 'export']);
+
+                // Operations
+                Route::get('people-search', [OperationsController::class, 'people']);
+                Route::post('library/books', [OperationsController::class, 'storeBook']);
+                Route::patch('library/books/{book}', [OperationsController::class, 'updateBook']);
+                Route::delete('library/books/{book}', [OperationsController::class, 'destroyBook']);
+                Route::get('library/loans', [OperationsController::class, 'loans']);
+                Route::post('library/loans', [OperationsController::class, 'issue']);
+                Route::post('library/loans/{loan}/return', [OperationsController::class, 'returnLoan']);
+                Route::get('transport/routes', [OperationsController::class, 'routes']);
+                Route::post('transport/routes', [OperationsController::class, 'storeRoute']);
+                Route::patch('transport/routes/{transportRoute}', [OperationsController::class, 'updateRoute']);
+                Route::delete('transport/routes/{transportRoute}', [OperationsController::class, 'destroyRoute']);
+                Route::post('transport/routes/{transportRoute}/students', [OperationsController::class, 'assign']);
+                Route::delete('transport/routes/{transportRoute}/students/{student}', [OperationsController::class, 'unassign']);
+                Route::get('inventory', [OperationsController::class, 'items']);
+                Route::post('inventory', [OperationsController::class, 'storeItem']);
+                Route::patch('inventory/{item}', [OperationsController::class, 'updateItem']);
+                Route::delete('inventory/{item}', [OperationsController::class, 'destroyItem']);
+                Route::post('inventory/{item}/move', [OperationsController::class, 'move']);
+                Route::get('inventory/{item}/movements', [OperationsController::class, 'movements']);
+                Route::get('visitors', [OperationsController::class, 'visitors']);
+                Route::post('visitors', [OperationsController::class, 'checkIn']);
+                Route::post('visitors/{visitor}/out', [OperationsController::class, 'checkOut']);
+                Route::get('visitors/export.csv', [OperationsController::class, 'exportVisitors']);
+                Route::patch('helpdesk/{ticket}', [CommunityController::class, 'updateTicket']);
+                Route::post('meetings', [CommunityController::class, 'storePtm']);
+                Route::delete('meetings/{event}', [CommunityController::class, 'destroyPtm']);
+                Route::patch('events/{event}', [CommunityController::class, 'updateEvent']);
+                Route::delete('events/{event}', [CommunityController::class, 'destroyEvent']);
 
                 // HR and payroll
                 Route::get('hr/employees', [HrController::class, 'employees']);
