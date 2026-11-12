@@ -95,6 +95,7 @@ export default function TenantLayout() {
         isOffice && { label: 'Office', links: [
             { to: `${t}/hr`, label: 'Staff & payroll', icon: 'building' },
             { to: `${t}/accounts`, label: 'Accounts', icon: 'chart' },
+            { to: `${t}/campus`, label: 'Campus', icon: 'shield' },
         ] },
         (isParent || isStudent) && { label: 'School', links: [
             { to: `${t}/diary`, label: 'Diary & homework', icon: 'diary' },
@@ -102,6 +103,13 @@ export default function TenantLayout() {
             { to: `${t}/attendance`, label: isParent ? 'Attendance & leave' : 'Attendance', icon: 'check2' },
             { to: `${t}/exams`, label: 'Exams & results', icon: 'quiz' },
             { to: `${t}/fees`, label: 'Fees', icon: 'wallet' },
+        ] },
+        { label: 'Community', links: [
+            { to: `${t}/messages`, label: 'Messages', icon: 'message' },
+            { to: `${t}/events`, label: 'Events & calendar', icon: 'flag' },
+            (isStaff || isParent) && { to: `${t}/meetings`, label: 'Parent meetings', icon: 'users' },
+            { to: `${t}/library`, label: 'Library', icon: 'book' },
+            { to: `${t}/helpdesk`, label: 'Help desk', icon: 'inbox' },
         ] },
         { label: 'Learning', links: [
             isStudent && { to: `${t}/my`, label: 'My learning', icon: 'play' },

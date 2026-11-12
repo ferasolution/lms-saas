@@ -35,6 +35,12 @@ import ReportCard from './pages/school/ReportCard';
 import Hr, { MyHr } from './pages/school/Hr';
 import Accounts from './pages/school/Accounts';
 import PayslipPrint from './pages/school/PayslipPrint';
+import Messages from './pages/school/Messages';
+import Helpdesk from './pages/school/Helpdesk';
+import Meetings from './pages/school/Meetings';
+import Events from './pages/school/Events';
+import Library from './pages/school/Library';
+import Campus from './pages/school/Campus';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import { PlatformLogin } from './pages/Platform';
@@ -114,6 +120,12 @@ function App() {
                         <Route path="hr" element={<Hr />} />
                         <Route path="my-hr" element={<MyHr />} />
                         <Route path="accounts" element={<Accounts />} />
+                        <Route path="messages" element={<Messages />} />
+                        <Route path="helpdesk" element={<Helpdesk />} />
+                        <Route path="meetings" element={<Meetings />} />
+                        <Route path="events" element={<Events />} />
+                        <Route path="library" element={<Library />} />
+                        <Route path="campus" element={<Campus />} />
                         <Route path="family" element={<Navigate to=".." relative="path" replace />} />
                         <Route path="courses/:id" element={<CoursePage />} />
                         <Route path="courses/:id/quiz/:quizId" element={<QuizEditor />} />

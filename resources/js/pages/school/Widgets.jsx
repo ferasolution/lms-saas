@@ -79,7 +79,7 @@ export function TeacherDay({ tenant }) {
     );
 }
 
-function ChildCard({ c, tenant, self = false }) {
+function ChildCard({ c, tenant, self = false, bus }) {
     const t = `/${tenant}`;
     const att = c.today_attendance;
     return (
@@ -123,6 +123,12 @@ function ChildCard({ c, tenant, self = false }) {
                             </ul>
                         )}
                     </div>
+                    {bus?.route && (
+                        <div className="rounded-xl bg-paper px-4 py-3 text-sm">
+                            <p className="font-bold text-graphite">Bus: {bus.route.name}{bus.route.vehicle ? ` · ${bus.route.vehicle}` : ''}</p>
+                            <p className="text-pencil">{bus.stop ? `Stop ${bus.stop}` : ''}{(() => { const s = bus.route.stops.find((x) => x.name === bus.stop); return s?.pickup ? ` · pickup ${s.pickup}` : ''; })()}{bus.route.driver_name ? ` · driver ${bus.route.driver_name}${bus.route.driver_phone ? ` (${bus.route.driver_phone})` : ''}` : ''}</p>
+                        </div>
+                    )}
                     <div className="flex items-center justify-between rounded-xl bg-paper px-4 py-3">
                         <span className="text-sm text-pencil">Attendance, last 30 days</span>
                         <Link to={`${t}/attendance`} className="font-display text-xl font-bold text-ink-deep tabular-nums hover:underline">{c.attendance.percent === null ? '—' : `${c.attendance.percent}%`}</Link>
@@ -136,7 +142,11 @@ function ChildCard({ c, tenant, self = false }) {
 /** Parent home: one card per child. */
 export function FamilyHome({ me, tenant }) {
     const [children, setChildren] = useState(null);
-    useEffect(() => { api('school/family', { tenant }).then((r) => setChildren(r.children)).catch(() => setChildren([])); }, [tenant]);
+    const [buses, setBuses] = useState([]);
+    useEffect(() => {
+        api('school/family', { tenant }).then((r) => setChildren(r.children)).catch(() => setChildren([]));
+        api('school/transport/mine', { tenant }).then((r) => setBuses(r.data)).catch(() => {});
+    }, [tenant]);
     const hour = new Date().getHours();
     const hello = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
@@ -149,7 +159,7 @@ export function FamilyHome({ me, tenant }) {
             <div className="mt-8 space-y-5">
                 {children === null ? <Skeleton className="h-72 rounded-2xl" /> : children.length === 0 ? (
                     <EmptyState icon="family" title="No children linked yet">Ask the school office to link your account to your child’s record. Then you’ll see their timetable, homework and attendance here.</EmptyState>
-                ) : children.map((c) => <ChildCard key={c.id} c={c} tenant={tenant} />)}
+                ) : children.map((c) => <ChildCard key={c.id} c={c} tenant={tenant} bus={buses.find((b) => b.student?.id === c.id)} />)}
             </div>
             <div className="mt-8"><Announcements tenant={tenant} limit={3} compact /></div>
         </div>
