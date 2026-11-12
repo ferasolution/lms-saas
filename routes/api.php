@@ -3,6 +3,12 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Central\PlatformController;
 use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\CurriculumController;
+use App\Http\Controllers\Api\LearningController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\QuizController;
+use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\TenantRegistrationController;
 use App\Http\Controllers\Api\UserController;
@@ -24,6 +30,8 @@ Route::post('deploy-hook', DeployController::class);
 |--------------------------------------------------------------------------
 */
 Route::get('plans', [MetaController::class, 'plans']);
+Route::get('certificates/{code}', [LearningController::class, 'verifyCertificate'])
+    ->where('code', '[0-9a-fA-F-]{36}')->middleware('throttle:60,1');
 
 Route::post('register-institute', [TenantRegistrationController::class, 'store'])
     ->middleware('throttle:5,1');
@@ -34,6 +42,8 @@ Route::prefix('platform')->group(function () {
     Route::post('login', [PlatformController::class, 'login'])->middleware('throttle:10,1');
 
     Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
+        Route::get('me', [PlatformController::class, 'me']);
+        Route::get('stats', [PlatformController::class, 'stats']);
         Route::get('tenants', [PlatformController::class, 'tenants']);
         Route::patch('tenants/{tenant}', [PlatformController::class, 'updateTenant']);
     });
@@ -53,19 +63,52 @@ Route::middleware('tenant')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('dashboard', [MetaController::class, 'dashboard']);
 
+        Route::patch('auth/me', [SettingsController::class, 'updateProfile']);
+
         Route::get('courses', [CourseController::class, 'index']);
         Route::get('courses/{course}', [CourseController::class, 'show']);
+        Route::get('courses/{course}/curriculum', [CurriculumController::class, 'show']);
+
+        // Learning
+        Route::post('courses/{course}/enrol', [LearningController::class, 'enrol'])->middleware('throttle:20,1');
+        Route::get('my/courses', [LearningController::class, 'myCourses']);
+        Route::get('my/certificates', [LearningController::class, 'myCertificates']);
+        Route::post('lessons/{lesson}/complete', [LearningController::class, 'completeLesson']);
+        Route::get('quizzes/{quiz}', [QuizController::class, 'show']);
+        Route::post('quizzes/{quiz}/start', [QuizController::class, 'start']);
+        Route::post('quiz-attempts/{attempt}/submit', [QuizController::class, 'submit']);
 
         Route::middleware('role:admin,instructor')->group(function () {
             Route::post('courses', [CourseController::class, 'store']);
             Route::match(['put', 'patch'], 'courses/{course}', [CourseController::class, 'update']);
             Route::delete('courses/{course}', [CourseController::class, 'destroy']);
+
+            // Course builder
+            Route::post('courses/{course}/sections', [CurriculumController::class, 'storeSection']);
+            Route::patch('sections/{section}', [CurriculumController::class, 'updateSection']);
+            Route::delete('sections/{section}', [CurriculumController::class, 'destroySection']);
+            Route::post('sections/{section}/lessons', [CurriculumController::class, 'storeLesson']);
+            Route::patch('lessons/{lesson}', [CurriculumController::class, 'updateLesson']);
+            Route::delete('lessons/{lesson}', [CurriculumController::class, 'destroyLesson']);
+            Route::put('courses/{course}/order', [CurriculumController::class, 'reorder']);
+            Route::put('quizzes/{quiz}', [QuizController::class, 'update']);
+            Route::post('uploads', [UploadController::class, 'store'])->middleware('throttle:30,1');
+
+            // Who is enrolled
+            Route::get('courses/{course}/students', [LearningController::class, 'students']);
+            Route::post('courses/{course}/students', [LearningController::class, 'addStudents']);
+            Route::delete('courses/{course}/students/{user}', [LearningController::class, 'removeStudent']);
         });
 
         Route::middleware('role:admin')->group(function () {
             Route::get('users', [UserController::class, 'index']);
             Route::post('users', [UserController::class, 'store']);
             Route::patch('users/{user}', [UserController::class, 'update']);
+
+            Route::patch('settings', [SettingsController::class, 'update']);
+            Route::get('orders', [OrderController::class, 'index']);
+            Route::post('orders/{order}/approve', [OrderController::class, 'approve']);
+            Route::post('orders/{order}/reject', [OrderController::class, 'reject']);
         });
     });
 });

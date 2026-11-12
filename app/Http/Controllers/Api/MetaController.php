@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CourseResource;
 use App\Models\Course;
+use App\Models\Certificate;
 use App\Models\Enrollment;
+use App\Models\Order;
 use App\Models\Plan;
 use App\Models\User;
 use App\Tenancy\TenantManager;
@@ -36,7 +38,7 @@ class MetaController extends Controller
             'name' => $tenant->name,
             'slug' => $tenant->slug,
             'type' => $tenant->type,
-            'settings' => $tenant->settings ?? (object) [],
+            'settings' => (object) collect($tenant->settings ?? [])->only(['brand', 'logo_url', 'welcome_message'])->all(),
         ]);
     }
 
@@ -69,7 +71,15 @@ class MetaController extends Controller
             ),
         ];
 
+        if (! $teaches) {
+            $data['certificates'] = Certificate::where('user_id', $user->id)->count();
+            $data['completed'] = Enrollment::where('user_id', $user->id)->where('status', 'completed')->count();
+        }
+
         if ($user->hasRole(User::ROLE_ADMIN)) {
+            $data['pending_payments'] = Order::where('status', 'pending')->count();
+            $data['revenue'] = (float) Order::where('status', 'paid')->sum('total');
+            $data['completions'] = Enrollment::where('status', 'completed')->count();
             $data['people'] = User::query()
                 ->selectRaw('role, count(*) as total')
                 ->groupBy('role')

@@ -15,6 +15,8 @@ class CourseResource extends JsonResource
             'slug' => $this->slug,
             'short_description' => $this->short_description,
             'description' => $this->description,
+            'what_you_learn' => $this->what_you_learn,
+            'certificate_enabled' => (bool) $this->certificate_enabled,
             'thumbnail' => $this->thumbnail,
             'level' => $this->level,
             'language' => $this->language,
