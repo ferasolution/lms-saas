@@ -236,7 +236,7 @@ class ConsoleController extends Controller
             $subscription->reviewed_at = now();
             $subscription->save();
 
-            ActivityLog::record('subscription.approved', "Approved {$plan->name} × {$subscription->months} month(s) for {$tenant->name}", ['subscription_id' => $subscription->id], $tenant->id, $request->user());
+            ActivityLog::record('subscription.approved', "Approved {$plan->name} × {$subscription->months} ".($subscription->months === 1 ? 'month' : 'months')." for {$tenant->name}", ['subscription_id' => $subscription->id], $tenant->id, $request->user());
         });
 
         return response()->json($this->subscriptionRow($subscription->load(['tenant', 'plan', 'requester', 'reviewer']), true));

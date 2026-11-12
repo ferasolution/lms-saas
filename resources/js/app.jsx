@@ -22,7 +22,12 @@ import { CertificateList, PublicCertificate, TenantCertificate } from './pages/C
 import Payments from './pages/Payments';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
-import PlatformConsole, { PlatformLogin } from './pages/Platform';
+import { PlatformLogin } from './pages/Platform';
+import ConsoleLayout from './pages/platform/ConsoleLayout';
+import ConsoleOverview from './pages/platform/ConsoleOverview';
+import { ConsoleTenant, ConsoleTenants } from './pages/platform/ConsoleTenants';
+import { ConsoleActivity, ConsoleHealth, ConsolePayments, ConsoleSettings, ConsoleSubscriptions, ConsoleUsers } from './pages/platform/ConsoleMore';
+import Billing from './pages/Billing';
 import Verify from './pages/Verify';
 
 // The marketing page carries 3D and animation libraries; app pages don't need them.
@@ -37,7 +42,7 @@ function ScrollAndTitle() {
     useEffect(() => {
         if (!hash) window.scrollTo(0, 0);
         const last = pathname.split('/').filter(Boolean).pop();
-        const section = { courses: 'Courses', people: 'People', login: 'Sign in', my: 'My learning', certificates: 'Certificates', payments: 'Payments', settings: 'Settings', profile: 'Profile', platform: 'Platform', verify: 'Verify certificate' }[last];
+        const section = { courses: 'Courses', people: 'People', login: 'Sign in', my: 'My learning', certificates: 'Certificates', payments: 'Payments', settings: 'Settings', profile: 'Profile', platform: 'Owner console', billing: 'Billing', institutes: 'Institutes', subscriptions: 'Plan payments', users: 'Users', activity: 'Activity', health: 'System health', verify: 'Verify certificate' }[last];
         document.title = TITLES[pathname] ?? (section ? `${section} · Fera Learn` : 'Fera Learn');
     }, [pathname, hash]);
     return null;
@@ -55,7 +60,17 @@ function App() {
                     <Route path="/install" element={<Install />} />
                     <Route path="/platform/setup" element={<PlatformSetup />} />
                     <Route path="/platform/login" element={<PlatformLogin />} />
-                    <Route path="/platform" element={<PlatformConsole />} />
+                    <Route path="/platform" element={<ConsoleLayout />}>
+                        <Route index element={<ConsoleOverview />} />
+                        <Route path="institutes" element={<ConsoleTenants />} />
+                        <Route path="institutes/:id" element={<ConsoleTenant />} />
+                        <Route path="subscriptions" element={<ConsoleSubscriptions />} />
+                        <Route path="payments" element={<ConsolePayments />} />
+                        <Route path="users" element={<ConsoleUsers />} />
+                        <Route path="activity" element={<ConsoleActivity />} />
+                        <Route path="health" element={<ConsoleHealth />} />
+                        <Route path="settings" element={<ConsoleSettings />} />
+                    </Route>
                     <Route path="/verify" element={<Verify />} />
                     <Route path="/verify/:code" element={<PublicCertificate />} />
                     <Route path="/:tenant/login" element={<Login />} />
@@ -72,6 +87,7 @@ function App() {
                         <Route path="people" element={<People />} />
                         <Route path="payments" element={<Payments />} />
                         <Route path="settings" element={<Settings />} />
+                        <Route path="billing" element={<Billing />} />
                         <Route path="profile" element={<Profile />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/" replace />} />

@@ -70,6 +70,7 @@ export default function TenantLayout() {
         isAdmin && [
             { to: `/${tenant}/people`, label: 'People', icon: 'users' },
             { to: `/${tenant}/payments`, label: 'Payments', icon: 'receipt', badge: pending },
+            { to: `/${tenant}/billing`, label: 'Billing', icon: 'wallet' },
             { to: `/${tenant}/settings`, label: 'Settings', icon: 'settings' },
         ],
     ].filter(Boolean).map((g) => g.filter(Boolean));
@@ -117,13 +118,13 @@ export default function TenantLayout() {
             </nav>
 
             {trialDays !== null && isAdmin && (
-                <div className="mx-3 mb-3 rounded-xl border border-rule bg-white p-4">
+                <Link to={`/${tenant}/billing`} className="mx-3 mb-3 block rounded-xl border border-rule bg-white p-4 transition hover:border-ink/40">
                     <p className="text-sm font-bold text-graphite">Free trial</p>
                     <p className="text-sm text-pencil">{trialDays} {trialDays === 1 ? 'day' : 'days'} left on the {me.tenant.plan?.name ?? 'Free'} plan</p>
                     <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink-50">
                         <div className="h-full rounded-full bg-ink" style={{ width: `${Math.min(100, (trialDays / 14) * 100)}%` }} />
                     </div>
-                </div>
+                </Link>
             )}
 
             <div className="flex items-center gap-2 border-t border-rule px-3 py-3">

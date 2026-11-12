@@ -81,7 +81,9 @@ class BillingController extends Controller
         $sub->requested_by = $request->user()->id;
         $sub->save();
 
-        ActivityLog::record('subscription.requested', "Requested {$plan->name} for {$data['months']} month(s), paid by {$data['payment_method']}", ['subscription_id' => $sub->id]);
+        $method = ['jazzcash' => 'JazzCash', 'easypaisa' => 'Easypaisa', 'bank' => 'bank transfer'][$data['payment_method']];
+        $months = (int) $data['months'] === 1 ? '1 month' : "{$data['months']} months";
+        ActivityLog::record('subscription.requested', "Requested {$plan->name} for {$months}, paid by {$method}", ['subscription_id' => $sub->id]);
 
         return response()->json(['id' => $sub->id, 'status' => 'pending'], 201);
     }
