@@ -7,6 +7,7 @@ import CourseCover from '../components/CourseCover';
 import { money } from '../lib/format';
 import { MyCourseCard, useMyCourses } from './MyLearning';
 import Announcements from '../components/Announcements';
+import { FamilyHome, OfficeToday, StudentToday, TeacherDay } from './school/Widgets';
 
 function greeting() {
     const h = new Date().getHours();
@@ -16,7 +17,7 @@ function greeting() {
 }
 
 export default function Overview() {
-    const { me, tenant, isAdmin, canTeach } = useOutletContext();
+    const { me, tenant, isAdmin, canTeach, isOffice, isStaff, isParent } = useOutletContext();
     const [stats, setStats] = useState(null);
     const toast = useToast();
 
@@ -38,7 +39,8 @@ export default function Overview() {
         }
     }
 
-    if (!canTeach) return <StudentHome me={me} tenant={tenant} stats={stats} firstName={firstName} />;
+    if (isParent) return <FamilyHome me={me} tenant={tenant} />;
+    if (!isStaff) return <StudentHome me={me} tenant={tenant} stats={stats} firstName={firstName} />;
 
     const hasPayments = Object.values(me.tenant.settings?.payments ?? {}).some(Boolean);
     const steps = isAdmin && stats ? [
@@ -62,6 +64,8 @@ export default function Overview() {
                     <Button as={Link} to={`/${tenant}/courses?new=1`} icon="plus">New course</Button>
                 )}
             </header>
+
+            <div className="mt-8">{isOffice ? <OfficeToday tenant={tenant} /> : <TeacherDay tenant={tenant} />}</div>
 
             {/* Getting started — only until every step is done */}
             {isAdmin && stats && remaining > 0 && (
@@ -189,6 +193,8 @@ function StudentHome({ me, tenant, stats, firstName }) {
                 <h1 className="mt-1 text-3xl font-extrabold sm:text-4xl">{greeting()}, {firstName}</h1>
                 {welcome && <p className="margin-line mt-4 max-w-2xl rounded-xl bg-white py-3 pr-4 pl-5 text-graphite ring-1 ring-rule">{welcome}</p>}
             </header>
+
+            <StudentToday tenant={tenant} />
 
             <section className="mt-8 grid grid-cols-3 divide-x divide-rule rounded-2xl border border-rule bg-white" aria-label="Summary">
                 {[['In progress', items ? active.length : undefined], ['Completed', stats?.completed], ['Certificates', stats?.certificates]].map(([label, value]) => (

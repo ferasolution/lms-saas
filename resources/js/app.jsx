@@ -21,6 +21,13 @@ import MyLearning from './pages/MyLearning';
 import { CertificateList, PublicCertificate, TenantCertificate } from './pages/Certificates';
 import Payments from './pages/Payments';
 import Grading from './pages/Grading';
+import Academics from './pages/school/Academics';
+import Admissions from './pages/school/Admissions';
+import Apply from './pages/school/Apply';
+import Attendance from './pages/school/Attendance';
+import Diary from './pages/school/Diary';
+import Students from './pages/school/Students';
+import Timetable from './pages/school/Timetable';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import { PlatformLogin } from './pages/Platform';
@@ -78,11 +85,19 @@ function App() {
                     <Route path="/verify" element={<Verify />} />
                     <Route path="/verify/:code" element={<PublicCertificate />} />
                     <Route path="/:tenant/login" element={<Login />} />
+                    <Route path="/:tenant/apply" element={<Apply />} />
                     <Route path="/:tenant" element={<TenantLayout />}>
                         <Route index element={<Overview />} />
                         <Route path="my" element={<MyLearning />} />
                         <Route path="courses" element={<Courses />} />
                         <Route path="grading" element={<Grading />} />
+                        <Route path="students" element={<Students />} />
+                        <Route path="attendance" element={<Attendance />} />
+                        <Route path="diary" element={<Diary />} />
+                        <Route path="timetable" element={<Timetable />} />
+                        <Route path="admissions" element={<Admissions />} />
+                        <Route path="academics" element={<Academics />} />
+                        <Route path="family" element={<Navigate to=".." relative="path" replace />} />
                         <Route path="courses/:id" element={<CoursePage />} />
                         <Route path="courses/:id/quiz/:quizId" element={<QuizEditor />} />
                         <Route path="learn/:courseId" element={<Player />} />
