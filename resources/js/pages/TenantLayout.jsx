@@ -90,6 +90,11 @@ export default function TenantLayout() {
             isOffice && { to: `${t}/fees`, label: 'Fees', icon: 'wallet' },
             isOffice && { to: `${t}/admissions`, label: 'Admissions', icon: 'inbox' },
             isOffice && { to: `${t}/academics`, label: 'Classes & subjects', icon: 'grid' },
+            !isOffice && { to: `${t}/my-hr`, label: 'My HR', icon: 'user' },
+        ] },
+        isOffice && { label: 'Office', links: [
+            { to: `${t}/hr`, label: 'Staff & payroll', icon: 'building' },
+            { to: `${t}/accounts`, label: 'Accounts', icon: 'chart' },
         ] },
         (isParent || isStudent) && { label: 'School', links: [
             { to: `${t}/diary`, label: 'Diary & homework', icon: 'diary' },
