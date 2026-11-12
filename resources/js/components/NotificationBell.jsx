@@ -59,7 +59,9 @@ export default function NotificationBell({ tenant, align = 'left', dark = false 
                 )}
             </button>
             {open && (
-                <div className={`absolute z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-rule bg-white shadow-2xl animate-[pop_.12s_ease-out] ${align === 'right' ? 'right-0' : 'left-0'}`}>
+                <div className={`z-50 overflow-hidden rounded-2xl border border-rule bg-white shadow-2xl animate-[pop_.12s_ease-out] ${align === 'right'
+                    ? 'fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-96'
+                    : 'absolute left-0 mt-2 w-96'}`}>
                     <div className="flex items-center justify-between border-b border-rule px-4 py-3">
                         <p className="font-bold text-ink-deep">Notifications</p>
                         {data.unread > 0 && <button type="button" onClick={readAll} className="text-sm font-bold text-ink hover:underline">Mark all as read</button>}

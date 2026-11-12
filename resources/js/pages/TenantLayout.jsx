@@ -164,7 +164,7 @@ export default function TenantLayout() {
 
     return (
         <div className="min-h-screen lg:grid lg:grid-cols-[17rem_1fr]">
-            <aside className="sticky top-0 hidden h-screen border-r border-rule bg-white lg:block print:hidden">{sidebar}</aside>
+            <aside className="sticky top-0 z-30 hidden h-screen border-r border-rule bg-white lg:block print:hidden">{sidebar}</aside>
 
             <header className="sticky top-0 z-30 flex items-center justify-between border-b border-rule bg-white/90 px-4 py-3 backdrop-blur lg:hidden print:hidden">
                 <IconButton icon="menu" label="Open menu" onClick={() => setDrawer(true)} />

@@ -5,6 +5,7 @@ import Icon from '../components/Icon';
 import CourseCover from '../components/CourseCover';
 import { Badge, Button, Checkbox, ConfirmDialog, EmptyState, Field, IconButton, Menu, Modal, SlideOver, Skeleton, useToast } from '../components/ui';
 import Stars from '../components/Stars';
+import { money } from '../lib/format';
 
 const TABS = [
     { value: '', label: 'All' },
@@ -17,8 +18,7 @@ const LEVELS = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: '
 
 export const formatPrice = (c) => {
     if (c.is_free || Number(c.price) === 0) return 'Free';
-    const amount = Number(c.sale_price ?? c.price);
-    return `${c.currency} ${amount.toLocaleString()}`;
+    return money(Number(c.sale_price ?? c.price), c.currency);
 };
 
 const titleCase = (s) => s[0].toUpperCase() + s.slice(1);
