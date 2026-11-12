@@ -109,16 +109,16 @@ class PlatformConsoleTest extends TestCase
         $this->tenant->update(['trial_ends_at' => now()->subDay()]);
         $basic = Plan::where('slug', 'basic')->first();
 
-        $this->asOwner()->putJson('/api/platform/settings', ['payments' => ['jazzcash' => '0300 1111111 (Fera Solution)']])->assertOk();
-        $this->asAdmin()->getJson('/api/billing')->assertJsonPath('pay_to.jazzcash', '0300 1111111 (Fera Solution)');
+        $this->asOwner()->putJson('/api/platform/settings', ['payments' => ['wise' => 'billing@ferasolution.com']])->assertOk();
+        $this->asAdmin()->getJson('/api/billing')->assertJsonPath('pay_to.wise', 'billing@ferasolution.com');
 
         $this->asAdmin()->postJson('/api/billing/subscribe', [
-            'plan_id' => $basic->id, 'months' => 3, 'payment_method' => 'jazzcash', 'payment_reference' => 'TX-99',
+            'plan_id' => $basic->id, 'months' => 3, 'payment_method' => 'wise', 'payment_reference' => 'TX-99',
         ])->assertCreated();
 
         // Only one pending at a time.
         $this->asAdmin()->postJson('/api/billing/subscribe', [
-            'plan_id' => $basic->id, 'months' => 1, 'payment_method' => 'jazzcash', 'payment_reference' => 'TX-100',
+            'plan_id' => $basic->id, 'months' => 1, 'payment_method' => 'bank', 'payment_reference' => 'TX-100',
         ])->assertUnprocessable();
 
         $subs = $this->asOwner()->getJson('/api/platform/subscriptions?status=pending')->assertOk()
@@ -175,13 +175,13 @@ class PlatformConsoleTest extends TestCase
 
     public function test_all_student_payments_are_listed_with_their_institute(): void
     {
-        $student = User::factory()->create(['tenant_id' => $this->tenant->id, 'name' => 'Zainab']);
+        $student = User::factory()->create(['tenant_id' => $this->tenant->id, 'name' => 'Emily Carter']);
         $course = Course::factory()->published()->create(['tenant_id' => $this->tenant->id, 'instructor_id' => $this->admin->id]);
-        $order = new Order(['user_id' => $student->id, 'course_id' => $course->id, 'amount' => 500, 'total' => 500, 'currency' => 'PKR', 'status' => 'pending', 'payment_reference' => 'REF-1']);
+        $order = new Order(['user_id' => $student->id, 'course_id' => $course->id, 'amount' => 500, 'total' => 500, 'currency' => 'USD', 'status' => 'pending', 'payment_reference' => 'REF-1']);
         $order->tenant_id = $this->tenant->id;
         $order->save();
 
-        $this->asOwner()->getJson('/api/platform/payments?search=Zainab')->assertOk()
+        $this->asOwner()->getJson('/api/platform/payments?search=Emily')->assertOk()
             ->assertJsonPath('data.0.tenant.slug', 'acme')
             ->assertJsonPath('data.0.payment_reference', 'REF-1')
             ->assertJsonPath('summary.pending', 1);
@@ -202,5 +202,56 @@ class PlatformConsoleTest extends TestCase
         $this->asOwner()->getJson('/api/platform/activity')->assertOk()
             ->assertJsonPath('data.0.action', 'tenant.registered')
             ->assertJsonPath('data.1.action', 'auth.login');
+    }
+
+    public function test_owner_resets_a_password_and_signs_the_user_out(): void
+    {
+        $student = User::factory()->create(['tenant_id' => $this->tenant->id, 'email' => 'jacob@example.com']);
+        $oldToken = $student->createToken('phone')->plainTextToken;
+
+        $res = $this->asOwner()->postJson("/api/platform/users/{$student->id}/reset-password")->assertOk();
+        $temp = $res->json('password');
+        $this->assertMatchesRegularExpression('/^[A-Z][a-z]+-[A-Z][a-z]+-\d{4}$/', $temp);
+        $this->assertStringEndsWith('/acme/login', $res->json('sign_in_url'));
+
+        // Old sessions are gone; the new password works.
+        $this->app['auth']->forgetGuards();
+        $this->flushHeaders();
+        $this->withHeaders(['X-Tenant' => 'acme', 'Authorization' => "Bearer {$oldToken}"])->getJson('/api/auth/me')->assertUnauthorized();
+        $this->app['auth']->forgetGuards();
+        $this->flushHeaders();
+        $this->withHeaders(['X-Tenant' => 'acme'])->postJson('/api/auth/login', ['email' => 'jacob@example.com', 'password' => $temp])->assertOk();
+
+        // A chosen password is accepted too.
+        $this->asOwner()->postJson("/api/platform/users/{$student->id}/reset-password", ['password' => 'chosen-pass-1'])->assertJsonPath('password', 'chosen-pass-1');
+
+        $this->assertTrue(ActivityLog::where('action', 'support.password_reset')->exists());
+
+        // Institute admins cannot use the owner endpoint, and the owner account is not resettable here.
+        $this->asAdmin()->postJson("/api/platform/users/{$student->id}/reset-password")->assertForbidden();
+        $this->asOwner()->postJson("/api/platform/users/{$this->owner->id}/reset-password")->assertUnprocessable();
+    }
+
+    public function test_owner_can_disable_and_restore_a_user(): void
+    {
+        $student = User::factory()->create(['tenant_id' => $this->tenant->id, 'email' => 'olivia@example.com']);
+
+        $this->asOwner()->patchJson("/api/platform/users/{$student->id}", ['is_active' => false])->assertOk()->assertJsonPath('is_active', false);
+        $this->app['auth']->forgetGuards();
+        $this->flushHeaders();
+        $this->withHeaders(['X-Tenant' => 'acme'])->postJson('/api/auth/login', ['email' => 'olivia@example.com', 'password' => 'password'])->assertUnprocessable();
+
+        $this->asOwner()->patchJson("/api/platform/users/{$student->id}", ['is_active' => true])->assertOk();
+        $this->app['auth']->forgetGuards();
+        $this->flushHeaders();
+        $this->withHeaders(['X-Tenant' => 'acme'])->postJson('/api/auth/login', ['email' => 'olivia@example.com', 'password' => 'password'])->assertOk();
+    }
+
+    public function test_old_local_payment_methods_are_no_longer_accepted(): void
+    {
+        $basic = Plan::where('slug', 'basic')->first();
+        $this->asAdmin()->postJson('/api/billing/subscribe', [
+            'plan_id' => $basic->id, 'months' => 1, 'payment_method' => 'jazzcash', 'payment_reference' => 'X',
+        ])->assertUnprocessable()->assertJsonValidationErrors('payment_method');
     }
 }

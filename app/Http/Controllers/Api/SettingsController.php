@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TenantResource;
 use App\Http\Resources\UserResource;
+use App\Support\Payments;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,11 +32,13 @@ class SettingsController extends Controller
             'settings.support_email' => ['nullable', 'email', 'max:255'],
             'settings.support_phone' => ['nullable', 'string', 'max:30'],
             'settings.payments' => ['nullable', 'array'],
-            'settings.payments.jazzcash' => ['nullable', 'string', 'max:120'],
-            'settings.payments.easypaisa' => ['nullable', 'string', 'max:120'],
             'settings.payments.bank' => ['nullable', 'string', 'max:500'],
+            'settings.payments.paypal' => ['nullable', 'string', 'max:255'],
+            'settings.payments.wise' => ['nullable', 'string', 'max:255'],
+            'settings.payments.card' => ['nullable', 'url:http,https', 'max:500'],
             'settings.payments.instructions' => ['nullable', 'string', 'max:1000'],
             'settings.certificate_signatory' => ['nullable', 'string', 'max:120'],
+            'settings.currency' => ['nullable', Rule::in(Payments::CURRENCIES)],
         ]);
 
         if (isset($data['name'])) {
@@ -44,7 +47,12 @@ class SettingsController extends Controller
 
         if (isset($data['settings'])) {
             // Only known keys are stored; merge so a partial save keeps the rest.
-            $tenant->settings = array_replace_recursive($tenant->settings ?? [], $data['settings']);
+            $settings = array_replace_recursive($tenant->settings ?? [], $data['settings']);
+            // Drop payment methods that are no longer offered.
+            if (isset($settings['payments'])) {
+                $settings['payments'] = array_intersect_key($settings['payments'], array_flip(['bank', 'paypal', 'wise', 'card', 'instructions']));
+            }
+            $tenant->settings = $settings;
         }
 
         $tenant->save();

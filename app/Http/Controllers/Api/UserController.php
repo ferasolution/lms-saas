@@ -96,6 +96,14 @@ class UserController extends Controller
 
         $user->save();
 
+        // A new password or disabled account signs the person out everywhere.
+        if (isset($data['password']) || (array_key_exists('is_active', $data) && ! $data['is_active'])) {
+            $user->tokens()->where('id', '!=', $request->user()->currentAccessToken()?->id ?? 0)->delete();
+            if (isset($data['password'])) {
+                ActivityLog::record('user.password_reset', "Reset the password of {$user->name}", ['user_id' => $user->id]);
+            }
+        }
+
         return new UserResource($user);
     }
 }

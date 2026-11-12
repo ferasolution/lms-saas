@@ -14,6 +14,7 @@ use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Billing;
+use App\Support\Payments;
 use Carbon\CarbonPeriod;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\JsonResponse;
@@ -96,8 +97,8 @@ class ConsoleController extends Controller
                 'subscriptions_total' => (float) Subscription::where('status', 'active')->sum('amount'),
                 'subscriptions_month' => (float) Subscription::where('status', 'active')->where('reviewed_at', '>=', $monthStart)->sum('amount'),
                 'pending_subscriptions' => Subscription::where('status', 'pending')->count(),
-                'institute_fees_total' => (float) Order::where('status', 'paid')->sum('total'),
-                'institute_fees_month' => (float) Order::where('status', 'paid')->where('paid_at', '>=', $monthStart)->sum('total'),
+                'institute_fees' => $this->byCurrency(Order::where('status', 'paid')),
+                'institute_fees_month' => $this->byCurrency(Order::where('status', 'paid')->where('paid_at', '>=', $monthStart)),
                 'pending_orders' => Order::where('status', 'pending')->count(),
             ],
             'signups' => $signupSeries,
@@ -154,7 +155,7 @@ class ConsoleController extends Controller
             'courses' => Course::where('tenant_id', $tenant->id)->withCount('enrollments')->latest()->limit(50)
                 ->get(['id', 'title', 'status', 'is_free', 'price', 'sale_price', 'currency', 'created_at']),
             'orders' => [
-                'paid_total' => (float) Order::where('tenant_id', $tenant->id)->where('status', 'paid')->sum('total'),
+                'paid_total' => $this->byCurrency(Order::where('tenant_id', $tenant->id)->where('status', 'paid')),
                 'pending' => Order::where('tenant_id', $tenant->id)->where('status', 'pending')->count(),
                 'recent' => Order::with(['user', 'course' => fn ($q) => $q->withTrashed()])->where('tenant_id', $tenant->id)->latest()->limit(10)->get()
                     ->map(fn ($o) => $this->orderRow($o)),
@@ -283,7 +284,7 @@ class ConsoleController extends Controller
             'summary' => [
                 'pending' => Order::where('status', 'pending')->count(),
                 'paid' => Order::where('status', 'paid')->count(),
-                'volume' => (float) Order::where('status', 'paid')->sum('total'),
+                'volume' => $this->byCurrency(Order::where('status', 'paid')),
             ],
         ]);
     }
@@ -333,6 +334,51 @@ class ConsoleController extends Controller
             'data' => $this->activityRows(collect($logs->items())),
             'meta' => ['total' => $logs->total(), 'page' => $logs->currentPage(), 'last_page' => $logs->lastPage()],
         ]);
+    }
+
+    /** Give a user a new temporary password, sign them out everywhere, and log it. */
+    public function resetPassword(Request $request, User $user): JsonResponse
+    {
+        abort_if($user->tenant_id === null, 422, 'Use the owner sign-in to change your own password.');
+        $data = $request->validate(['password' => ['nullable', 'string', 'min:8', 'max:100']]);
+
+        $password = $data['password'] ?? self::temporaryPassword();
+        $user->password = $password;
+        $user->save();
+        $user->tokens()->delete();
+
+        $tenant = Tenant::find($user->tenant_id);
+        ActivityLog::record('support.password_reset', "{$request->user()->email} reset the password of {$user->name} ({$user->email})", ['user_id' => $user->id], $user->tenant_id, $request->user());
+
+        return response()->json([
+            'password' => $password,
+            'user' => $user->only('id', 'name', 'email'),
+            'sign_in_url' => $tenant ? url("/{$tenant->slug}/login") : null,
+        ]);
+    }
+
+    public function updateUser(Request $request, User $user): JsonResponse
+    {
+        abort_if($user->tenant_id === null, 422, 'Owner accounts are managed separately.');
+        $data = $request->validate(['is_active' => ['required', 'boolean']]);
+
+        $user->is_active = $data['is_active'];
+        $user->save();
+        if (! $user->is_active) {
+            $user->tokens()->delete();
+        }
+
+        ActivityLog::record('support.user_access', ($user->is_active ? 'Restored access for ' : 'Disabled access for ')."{$user->name} ({$user->email})", ['user_id' => $user->id], $user->tenant_id, $request->user());
+
+        return response()->json(['id' => $user->id, 'is_active' => (bool) $user->is_active]);
+    }
+
+    /** Easy to read out over the phone: Word-Word-1234. */
+    public static function temporaryPassword(): string
+    {
+        $words = ['Maple', 'River', 'Cedar', 'Harbor', 'Summit', 'Willow', 'Falcon', 'Meadow', 'Canyon', 'Aspen', 'Orbit', 'Prairie'];
+
+        return $words[random_int(0, count($words) - 1)].'-'.$words[random_int(0, count($words) - 1)].'-'.random_int(1000, 9999);
     }
 
     /* ------------------------------------------------------------ system health */
@@ -466,9 +512,10 @@ class ConsoleController extends Controller
     {
         $data = $request->validate([
             'payments' => ['sometimes', 'array'],
-            'payments.jazzcash' => ['nullable', 'string', 'max:120'],
-            'payments.easypaisa' => ['nullable', 'string', 'max:120'],
             'payments.bank' => ['nullable', 'string', 'max:500'],
+            'payments.paypal' => ['nullable', 'string', 'max:255'],
+            'payments.wise' => ['nullable', 'string', 'max:255'],
+            'payments.card' => ['nullable', 'url:http,https', 'max:500'],
             'payments.instructions' => ['nullable', 'string', 'max:1000'],
             'support' => ['sometimes', 'array'],
             'support.email' => ['nullable', 'email', 'max:255'],
@@ -486,6 +533,14 @@ class ConsoleController extends Controller
     }
 
     /* ------------------------------------------------------------ helpers */
+
+    /** Sums per currency, biggest first: [['currency' => 'USD', 'amount' => 1200.0], ...] */
+    protected function byCurrency($query): array
+    {
+        return $query->selectRaw('currency, sum(total) as amount')->groupBy('currency')->get()
+            ->map(fn ($r) => ['currency' => $r->currency, 'amount' => (float) $r->amount])
+            ->sortByDesc('amount')->values()->all();
+    }
 
     protected function tenantRow(Tenant $t): array
     {
@@ -514,7 +569,7 @@ class ConsoleController extends Controller
     {
         return [
             'id' => $o->id, 'status' => $o->status, 'total' => $o->total, 'currency' => $o->currency,
-            'payment_method' => $o->gateway, 'payment_reference' => $o->payment_reference, 'note' => $o->note,
+            'payment_method' => $o->gateway, 'payment_method_label' => Payments::label($o->gateway), 'payment_reference' => $o->payment_reference, 'note' => $o->note,
             'created_at' => $o->created_at, 'paid_at' => $o->paid_at,
             'user' => $o->user?->only('id', 'name', 'email'),
             'course' => $o->course?->only('id', 'title'),

@@ -39,26 +39,26 @@ class TenancyTest extends TestCase
         $this->seed();
 
         $response = $this->postJson('/api/register-institute', [
-            'institute_name' => 'Karachi Grammar Academy',
-            'slug' => 'kga',
+            'institute_name' => 'Lincoln Prep Academy',
+            'slug' => 'lincoln',
             'type' => 'academy',
-            'name' => 'Ayesha Khan',
-            'email' => 'Ayesha@Example.com',
+            'name' => 'Emily Carter',
+            'email' => 'Emily@Example.com',
             'password' => 'secret-pass',
             'password_confirmation' => 'secret-pass',
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('tenant.slug', 'kga')
+            ->assertJsonPath('tenant.slug', 'lincoln')
             ->assertJsonPath('tenant.status', 'trial')
             ->assertJsonPath('tenant.plan.slug', 'free')
             ->assertJsonPath('user.role', 'admin')
-            ->assertJsonPath('user.email', 'ayesha@example.com');
+            ->assertJsonPath('user.email', 'emily@example.com');
 
         $token = $response->json('token');
-        $this->asTenant('kga', $token)->getJson('/api/auth/me')
+        $this->asTenant('lincoln', $token)->getJson('/api/auth/me')
             ->assertOk()
-            ->assertJsonPath('user.name', 'Ayesha Khan');
+            ->assertJsonPath('user.name', 'Emily Carter');
     }
 
     public function test_reserved_and_taken_slugs_are_rejected(): void

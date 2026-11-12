@@ -33,7 +33,7 @@ class Course extends Model
         'language' => 'en',
         'is_free' => false,
         'price' => 0,
-        'currency' => 'PKR',
+        'currency' => 'USD',
         'certificate_enabled' => true,
     ];
 

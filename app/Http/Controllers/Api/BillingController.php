@@ -8,6 +8,7 @@ use App\Models\Plan;
 use App\Models\PlatformSetting;
 use App\Models\Subscription;
 use App\Services\Billing;
+use App\Support\Payments;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,7 +58,7 @@ class BillingController extends Controller
         $data = $request->validate([
             'plan_id' => ['required', Rule::exists('plans', 'id')->where('is_active', true)],
             'months' => ['required', 'integer', Rule::in([1, 3, 6, 12])],
-            'payment_method' => ['required', Rule::in(['jazzcash', 'easypaisa', 'bank'])],
+            'payment_method' => ['required', Rule::in(array_keys(Payments::METHODS))],
             'payment_reference' => ['required', 'string', 'max:120'],
             'note' => ['nullable', 'string', 'max:500'],
         ], [
@@ -81,7 +82,7 @@ class BillingController extends Controller
         $sub->requested_by = $request->user()->id;
         $sub->save();
 
-        $method = ['jazzcash' => 'JazzCash', 'easypaisa' => 'Easypaisa', 'bank' => 'bank transfer'][$data['payment_method']];
+        $method = Payments::label($data['payment_method']);
         $months = (int) $data['months'] === 1 ? '1 month' : "{$data['months']} months";
         ActivityLog::record('subscription.requested', "Requested {$plan->name} for {$months}, paid by {$method}", ['subscription_id' => $sub->id]);
 

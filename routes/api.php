@@ -56,6 +56,8 @@ Route::prefix('platform')->group(function () {
         Route::post('subscriptions/{subscription}/reject', [ConsoleController::class, 'rejectSubscription']);
         Route::get('payments', [ConsoleController::class, 'payments']);
         Route::get('users', [ConsoleController::class, 'users']);
+        Route::post('users/{user}/reset-password', [ConsoleController::class, 'resetPassword']);
+        Route::patch('users/{user}', [ConsoleController::class, 'updateUser']);
         Route::get('activity', [ConsoleController::class, 'activity']);
         Route::get('health', [ConsoleController::class, 'health']);
         Route::get('settings', [ConsoleController::class, 'settings']);

@@ -204,7 +204,7 @@ class LearningFlowTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors(['payment_method', 'payment_reference']);
 
         $this->as($this->student)->postJson("/api/courses/{$courseId}/enrol", [
-            'payment_method' => 'jazzcash', 'payment_reference' => 'TX123',
+            'payment_method' => 'paypal', 'payment_reference' => 'TX123',
         ])->assertStatus(202)->assertJsonPath('status', 'pending');
 
         $this->as($this->student)->getJson("/api/courses/{$courseId}/curriculum")
@@ -323,14 +323,17 @@ class LearningFlowTest extends TestCase
     {
         $this->as($this->admin)->patchJson('/api/settings', [
             'name' => 'Acme Learning',
-            'settings' => ['brand' => 'emerald', 'payments' => ['jazzcash' => '0300 0000000']],
+            'settings' => ['brand' => 'emerald', 'payments' => ['paypal' => 'payments@acme.example']],
         ])->assertOk()->assertJsonPath('name', 'Acme Learning')->assertJsonPath('settings.brand', 'emerald');
 
         $this->as($this->admin)->patchJson('/api/settings', ['settings' => ['welcome_message' => 'Hi']])
             ->assertJsonPath('settings.brand', 'emerald')
-            ->assertJsonPath('settings.payments.jazzcash', '0300 0000000');
+            ->assertJsonPath('settings.payments.paypal', 'payments@acme.example');
 
         $this->as($this->admin)->patchJson('/api/settings', ['settings' => ['brand' => 'neon']])->assertUnprocessable();
+        $this->as($this->admin)->patchJson('/api/settings', ['settings' => ['currency' => 'XYZ']])->assertUnprocessable();
+        $this->as($this->admin)->patchJson('/api/settings', ['settings' => ['currency' => 'EUR']])->assertJsonPath('settings.currency', 'EUR');
+        $this->as($this->teacher)->postJson('/api/courses', ['title' => 'Priced in euros'])->assertCreated()->assertJsonPath('currency', 'EUR');
         $this->as($this->teacher)->patchJson('/api/settings', ['name' => 'X'])->assertForbidden();
 
         // Public sign-in info shows branding but not payment details.

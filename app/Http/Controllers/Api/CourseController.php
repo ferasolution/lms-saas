@@ -45,6 +45,9 @@ class CourseController extends Controller
         app(Billing::class)->ensureCanAdd(app(TenantManager::class)->current(), 'courses');
 
         $course = new Course($data);
+        if (empty($data['currency'])) {
+            $course->currency = app(TenantManager::class)->current()->settings['currency'] ?? 'USD';
+        }
         // Instructors always own what they create; admins may assign an instructor.
         $course->instructor_id = $user->hasRole(User::ROLE_ADMIN)
             ? ($data['instructor_id'] ?? $user->id)
@@ -110,7 +113,7 @@ class CourseController extends Controller
             'is_free' => ['sometimes', 'boolean'],
             'price' => ['sometimes', 'numeric', 'min:0', 'max:9999999'],
             'sale_price' => ['nullable', 'numeric', 'min:0', 'lte:price'],
-            'currency' => ['sometimes', 'string', 'size:3'],
+            'currency' => ['sometimes', Rule::in(\App\Support\Payments::CURRENCIES)],
             'status' => ['sometimes', Rule::in([Course::STATUS_DRAFT, Course::STATUS_PUBLISHED, Course::STATUS_ARCHIVED])],
             'category_id' => ['nullable', Rule::exists('categories', 'id')->where('tenant_id', $tenantId)],
             'instructor_id' => ['nullable', Rule::exists('users', 'id')

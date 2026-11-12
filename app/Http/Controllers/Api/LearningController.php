@@ -12,6 +12,7 @@ use App\Models\LessonProgress;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Learning;
+use App\Support\Payments;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -46,7 +47,7 @@ class LearningController extends Controller
         }
 
         $data = $request->validate([
-            'payment_method' => ['required', Rule::in(['jazzcash', 'easypaisa', 'bank', 'cash'])],
+            'payment_method' => ['required', Rule::in(array_keys(Payments::METHODS))],
             'payment_reference' => ['required', 'string', 'max:120'],
             'note' => ['nullable', 'string', 'max:500'],
         ], [
