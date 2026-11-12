@@ -353,6 +353,7 @@ export function ConsoleSettings() {
         call('settings').then((s) => setForm({
             bank: s.payments?.bank ?? '', paypal: s.payments?.paypal ?? '', wise: s.payments?.wise ?? '', card: s.payments?.card ?? '', instructions: s.payments?.instructions ?? '',
             email: s.support?.email ?? '', phone: s.support?.phone ?? '',
+            ai_key: '', ai_model: s.ai?.model ?? 'claude-haiku-5-5', ai_has_key: s.ai?.has_key ?? false,
         }));
     }, []);
 
@@ -368,7 +369,9 @@ export function ConsoleSettings() {
             await call('settings', { method: 'PUT', body: {
                 payments: { bank: form.bank || null, paypal: form.paypal || null, wise: form.wise || null, card: form.card || null, instructions: form.instructions || null },
                 support: { email: form.email || null, phone: form.phone || null },
+                ai: { api_key: form.ai_key || null, model: form.ai_model || null },
             } });
+            if (form.ai_key) setForm((f) => ({ ...f, ai_key: '', ai_has_key: true }));
             toast('Settings saved');
         } catch (er) {
             setError(er);
@@ -398,6 +401,14 @@ export function ConsoleSettings() {
                 <div className="grid gap-5 sm:grid-cols-2">
                     <Field label="Email" type="email" value={form.email} onChange={set('email')} error={err('support.email')} />
                     <Field label="Phone / WhatsApp" value={form.phone} onChange={set('phone')} error={err('support.phone')} />
+                </div>
+            </Panel>
+            <Panel title="AI assistant" className="mt-6">
+                <div className="space-y-5">
+                    <p className="text-pencil">Powers lesson plans, quizzes, the student tutor and parent summaries in every institute. Get a key at console.anthropic.com. It is stored encrypted and never shown again.</p>
+                    <Field label={form.ai_has_key ? 'API key (saved — enter a new one to replace it)' : 'Anthropic API key'} type="password" autoComplete="off" value={form.ai_key} onChange={set('ai_key')} error={err('ai.api_key')} placeholder={form.ai_has_key ? '••••••••••••' : 'sk-ant-…'} />
+                    <Field label="Model" value={form.ai_model} onChange={set('ai_model')} error={err('ai.model')} hint="claude-haiku-5-5 is fast and low-cost; claude-sonnet-5-5 writes richer drafts." />
+                    {form.ai_has_key && <p className="text-sm font-bold text-leaf">AI is switched on for institutes.</p>}
                 </div>
             </Panel>
             <Button type="submit" className="mt-6" busy={busy} icon="check">Save settings</Button>

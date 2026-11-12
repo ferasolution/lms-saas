@@ -41,6 +41,7 @@ import Meetings from './pages/school/Meetings';
 import Events from './pages/school/Events';
 import Library from './pages/school/Library';
 import Campus from './pages/school/Campus';
+import Assistant from './pages/school/Assistant';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import { PlatformLogin } from './pages/Platform';
@@ -126,6 +127,7 @@ function App() {
                         <Route path="events" element={<Events />} />
                         <Route path="library" element={<Library />} />
                         <Route path="campus" element={<Campus />} />
+                        <Route path="assistant" element={<Assistant />} />
                         <Route path="family" element={<Navigate to=".." relative="path" replace />} />
                         <Route path="courses/:id" element={<CoursePage />} />
                         <Route path="courses/:id/quiz/:quizId" element={<QuizEditor />} />
@@ -151,3 +153,8 @@ createRoot(document.getElementById('app')).render(
         <App />
     </StrictMode>,
 );
+
+// Installable on phones (Add to Home Screen).
+if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}

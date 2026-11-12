@@ -17,7 +17,7 @@ function greeting() {
 }
 
 export default function Overview() {
-    const { me, tenant, isAdmin, canTeach, isOffice, isStaff, isParent } = useOutletContext();
+    const { me, tenant, isAdmin, canTeach, isOffice, isStaff, isParent, refresh } = useOutletContext();
     const [stats, setStats] = useState(null);
     const toast = useToast();
 
@@ -65,7 +65,7 @@ export default function Overview() {
                 )}
             </header>
 
-            <div className="mt-8">{isOffice ? <OfficeToday tenant={tenant} /> : <TeacherDay tenant={tenant} />}</div>
+            <div className="mt-8">{isOffice ? <OfficeToday tenant={tenant} me={me} refresh={refresh} /> : <TeacherDay tenant={tenant} />}</div>
 
             {/* Getting started — only until every step is done */}
             {isAdmin && stats && remaining > 0 && (

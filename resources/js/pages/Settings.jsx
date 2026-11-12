@@ -4,7 +4,8 @@ import { api, upload } from '../lib/api';
 import { applyBrand, BRANDS } from '../lib/brand';
 import { CURRENCIES } from '../lib/format';
 import Icon from '../components/Icon';
-import { Button, Field, FileDrop, PageHeader, Tabs, useToast } from '../components/ui';
+import { Button, Field, FileDrop, PageHeader, Tabs, Toggle, useToast } from '../components/ui';
+import { ActivityTab, ModulesTab } from './school/AdminTabs';
 
 export default function Settings() {
     const { tenant, isAdmin, me, refresh } = useOutletContext();
@@ -27,6 +28,10 @@ export default function Settings() {
         card: s.payments?.card ?? '',
         bank: s.payments?.bank ?? '',
         instructions: s.payments?.instructions ?? '',
+        address: s.address ?? '',
+        admissions_open: s.admissions_open ?? true,
+        library_fine_per_day: s.library_fine_per_day ?? '',
+        timezone: s.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     }));
     const [error, setError] = useState(null);
     const [busy, setBusy] = useState(false);
@@ -71,6 +76,10 @@ export default function Settings() {
                         support_phone: form.support_phone || null,
                         certificate_signatory: form.certificate_signatory || null,
                         currency: form.currency,
+                        address: form.address || null,
+                        admissions_open: !!form.admissions_open,
+                        library_fine_per_day: form.library_fine_per_day === '' ? null : Number(form.library_fine_per_day),
+                        timezone: form.timezone || null,
                         payments: {
                             paypal: form.paypal || null,
                             wise: form.wise || null,
@@ -102,6 +111,8 @@ export default function Settings() {
                 { value: 'branding', label: 'Branding', icon: 'palette' },
                 { value: 'payments', label: 'Payments', icon: 'wallet' },
                 { value: 'certificates', label: 'Certificates', icon: 'award' },
+                { value: 'modules', label: 'Modules', icon: 'grid' },
+                { value: 'activity', label: 'Activity log', icon: 'clock' },
             ]} />
 
             <div className="mt-6 max-w-3xl space-y-6">
@@ -119,6 +130,12 @@ export default function Settings() {
                             <Field label="Support email" type="email" value={form.support_email} onChange={set('support_email')} error={err('support_email')} hint="Shown to students who need help." />
                             <Field label="Support phone / WhatsApp" value={form.support_phone} onChange={set('support_phone')} error={err('support_phone')} placeholder="+1 555 123 4567" />
                         </div>
+                        <Field label="Address" as="textarea" rows={2} value={form.address} onChange={set('address')} error={err('address')} hint="Printed on invoices, receipts and report cards." />
+                        <div className="grid gap-5 sm:grid-cols-2">
+                            <Field label="Time zone" value={form.timezone} onChange={set('timezone')} error={err('timezone')} placeholder="America/New_York" />
+                            <Field label="Library late fine per day" type="number" min="0" step="0.01" value={form.library_fine_per_day} onChange={set('library_fine_per_day')} error={err('library_fine_per_day')} />
+                        </div>
+                        <Toggle label="Accept online applications" hint={`Your form: ${window.location.host}/${tenant}/apply`} checked={!!form.admissions_open} onChange={(v) => setForm((f) => ({ ...f, admissions_open: v }))} />
                         <div className="rounded-xl bg-paper p-4 text-sm text-pencil">
                             Your sign-in page: <strong className="text-graphite">{window.location.host}/{tenant}/login</strong>
                         </div>
@@ -171,6 +188,9 @@ export default function Settings() {
                     </Card>
                 )}
 
+                {tab === 'modules' && <ModulesTab tenant={tenant} me={me} refresh={refresh} />}
+                {tab === 'activity' && <ActivityTab tenant={tenant} />}
+
                 {tab === 'certificates' && (
                     <Card description="Certificates are issued automatically when a student finishes every lesson of a course with certificates turned on.">
                         <Field label="Signed by" value={form.certificate_signatory} onChange={set('certificate_signatory')} error={err('certificate_signatory')}
@@ -180,11 +200,11 @@ export default function Settings() {
                 )}
             </div>
 
-            <div className="fixed inset-x-0 bottom-0 z-20 border-t border-rule bg-white/95 backdrop-blur lg:left-[17rem]">
+            {!['modules', 'activity'].includes(tab) && <div className="fixed inset-x-0 bottom-0 z-20 border-t border-rule bg-white/95 backdrop-blur lg:left-[17rem]">
                 <div className="mx-auto flex max-w-6xl items-center justify-end gap-3 px-4 py-3 sm:px-8 lg:px-12">
                     <Button type="submit" busy={busy} icon="check">Save settings</Button>
                 </div>
-            </div>
+            </div>}
         </form>
     );
 }

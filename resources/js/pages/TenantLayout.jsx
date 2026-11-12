@@ -8,6 +8,13 @@ import NotificationBell from '../components/NotificationBell';
 import SearchPalette from '../components/SearchPalette';
 
 const TYPE_LABEL = { school: 'School', academy: 'Academy', corporate: 'Company' };
+// Which module each page belongs to (Settings → Modules can switch them off).
+const MODULE_OF = {
+    attendance: 'attendance', diary: 'diary', timetable: 'timetable', exams: 'exams', fees: 'fees', admissions: 'admissions',
+    hr: 'hr', 'my-hr': 'hr', accounts: 'accounts', library: 'library', campus: 'campus', meetings: 'meetings', events: 'events',
+    messages: 'messages', helpdesk: 'helpdesk', courses: 'courses', my: 'courses', grading: 'courses', certificates: 'courses', assistant: 'ai',
+};
+
 const ROLE_LABEL = { admin: 'Admin', instructor: 'Instructor', student: 'Student', parent: 'Parent', manager: 'Manager' };
 
 export default function TenantLayout() {
@@ -77,9 +84,13 @@ export default function TenantLayout() {
     }
 
     const t = `/${tenant}`;
+    const mods = me.tenant.settings?.modules ?? {};
+    const on = (m) => !m || mods[m] !== false;
+    const remote = me.tenant.settings?.remote_mode;
     const groups = [
         { links: [
             { to: t, label: 'Overview', icon: 'home', end: true },
+            { to: `${t}/assistant`, label: 'AI assistant', icon: 'sparkle', module: 'ai' },
         ] },
         isStaff && { label: 'School', links: [
             { to: `${t}/students`, label: 'Students', icon: 'users' },
@@ -123,7 +134,7 @@ export default function TenantLayout() {
             { to: `${t}/billing`, label: 'Billing', icon: 'wallet' },
             { to: `${t}/settings`, label: 'Settings', icon: 'settings' },
         ] },
-    ].filter(Boolean).map((g) => ({ ...g, links: g.links.filter(Boolean) }));
+    ].filter(Boolean).map((g) => ({ ...g, links: g.links.filter(Boolean).filter((l) => on(l.module ?? MODULE_OF[l.to.split('/')[2]])) })).filter((g) => g.links.length);
 
     const trialDays = me.tenant.status === 'trial' && me.tenant.trial_ends_at
         ? Math.max(0, Math.ceil((new Date(me.tenant.trial_ends_at) - Date.now()) / 86400000))
@@ -227,6 +238,14 @@ export default function TenantLayout() {
                 pages={groups.flatMap((g) => g.links).map((l) => ({ label: l.label, icon: l.icon, to: l.to })).concat([{ label: 'Your profile', icon: 'user', to: `/${tenant}/profile` }])} />
 
             <main className="min-w-0">
+                {remote?.active && (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-ink-deep px-4 py-2.5 text-sm text-white sm:px-8 lg:px-12 print:hidden" role="status">
+                        <Icon name="video" size={18} />
+                        <b>Remote learning is on.</b>
+                        <span className="text-white/80">{remote.message ?? 'Classes continue online — use the Join links on your timetable.'}</span>
+                        <Link to={`${t}/timetable`} className="ml-auto font-bold underline">Timetable</Link>
+                    </div>
+                )}
                 <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8 lg:px-12 lg:py-10 print:max-w-none print:p-0">
                     <Outlet context={ctx} />
                 </div>

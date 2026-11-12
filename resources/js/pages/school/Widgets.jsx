@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Announcements from '../../components/Announcements';
 import Icon from '../../components/Icon';
 import { TodayList } from '../../components/school';
-import { Avatar, Button, EmptyState, Skeleton } from '../../components/ui';
+import { Avatar, Button, EmptyState, Field, Modal, Skeleton, useToast } from '../../components/ui';
 import { api } from '../../lib/api';
 import { ATTENDANCE, DIARY_KINDS, dueLabel, shortDate } from '../../lib/school';
 
@@ -20,13 +20,39 @@ function Tile({ to, icon, label, value, sub, tone = 'text-ink-deep' }) {
         : <div className="rounded-2xl border border-rule bg-white p-5">{body}</div>;
 }
 
+/** Switch the whole school to remote learning and back. */
+function RemoteSwitch({ tenant, me, refresh }) {
+    const toast = useToast();
+    const remote = me?.tenant.settings?.remote_mode;
+    const [open, setOpen] = useState(false);
+    const [msg, setMsg] = useState('');
+    const [busy, setBusy] = useState(false);
+    async function go(active) {
+        setBusy(true);
+        try { await api('school/remote-mode', { method: 'POST', tenant, body: { active, message: active ? msg || null : null } }); await refresh?.(); toast(active ? 'Remote learning is on · everyone notified' : 'Back to normal classes · everyone notified'); setOpen(false); } catch (e) { toast(e.message, 'error'); } finally { setBusy(false); }
+    }
+    return (
+        <div className={`mt-3 flex flex-wrap items-center gap-3 rounded-2xl p-4 ${remote?.active ? 'bg-ink-deep text-white' : 'border border-rule bg-white'}`}>
+            <Icon name="video" size={20} />
+            <p className="min-w-0 flex-1">{remote?.active ? <><b>Remote learning is on</b> since {new Date(remote.since).toLocaleDateString()} — classes run online from the timetable links.</> : <><b className="text-graphite">School closed?</b> <span className="text-pencil">Move everyone to online classes in one step.</span></>}</p>
+            {remote?.active ? <Button size="sm" variant="secondary" busy={busy} onClick={() => go(false)}>End remote learning</Button> : <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>Switch to remote learning</Button>}
+            <Modal open={open} onClose={() => setOpen(false)} title="Switch to remote learning?" description="Every student, parent and teacher gets a notification, and a banner shows across the app."
+                footer={<><Button variant="secondary" onClick={() => setOpen(false)}>Cancel</Button><Button busy={busy} onClick={() => go(true)}>Switch now</Button></>}>
+                <Field label="Message (optional)" as="textarea" rows={3} value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="e.g. Snow day — all classes online today. Join from your timetable." />
+                <p className="mt-3 text-sm text-pencil">Tip: add online class links to each timetable period so students can join with one tap.</p>
+            </Modal>
+        </div>
+    );
+}
+
 /** School office: the day at a glance. */
-export function OfficeToday({ tenant }) {
+export function OfficeToday({ tenant, me, refresh }) {
     const [d, setD] = useState(null);
     useEffect(() => { api('school/overview', { tenant }).then(setD).catch(() => setD(false)); }, [tenant]);
     if (d === false) return null;
     const t = `/${tenant}`;
     return (
+        <>
         <section aria-label="School today" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Tile to={`${t}/students`} icon="users" label="Students" value={d?.students} sub={d ? (d.unplaced ? `${d.unplaced} not in a class` : `${d.sections} sections · ${d.teachers} teachers`) : null} />
             <Tile to={`${t}/attendance?tab=today`} icon="check2" label="Present today" value={d ? (d.attendance.percent === null ? '—' : `${d.attendance.percent}%`) : undefined}
@@ -34,6 +60,8 @@ export function OfficeToday({ tenant }) {
             <Tile to={`${t}/admissions`} icon="inbox" label="Applications" value={d?.admissions} sub="Waiting for a decision" />
             <Tile to={`${t}/attendance?tab=leave`} icon="calendar" label="Leave requests" value={d?.leave_pending} sub="Waiting for approval" />
         </section>
+        <RemoteSwitch tenant={tenant} me={me} refresh={refresh} />
+        </>
     );
 }
 
