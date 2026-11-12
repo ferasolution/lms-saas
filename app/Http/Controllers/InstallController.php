@@ -137,7 +137,7 @@ class InstallController extends Controller
         // 4. Finally write .env. From now on this installer is closed.
         $url = rtrim($data['app_url'], '/');
         $env = $this->envFile([
-            'APP_NAME' => 'Fera Learn',
+            'APP_NAME' => 'Fera EduSphere',
             'APP_ENV' => 'production',
             'APP_KEY' => $appKey,
             'APP_DEBUG' => 'false',

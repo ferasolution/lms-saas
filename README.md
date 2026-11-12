@@ -1,4 +1,4 @@
-# Fera Learn — LMS SaaS
+# Fera EduSphere — LMS SaaS
 
 Multi-tenant Learning Management System for schools, course academies and companies.
 Laravel 13 API + React SPA, deployed to `lms.ferasolution.com`.

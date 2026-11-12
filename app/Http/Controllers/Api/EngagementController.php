@@ -152,7 +152,7 @@ class EngagementController extends Controller
             'pinned' => (bool) $a->pinned,
             'platform' => $a->tenant_id === null,
             'course' => $a->course?->only('id', 'title'),
-            'author' => $a->tenant_id === null ? ['name' => 'Fera Learn'] : $a->author?->only('id', 'name'),
+            'author' => $a->tenant_id === null ? ['name' => 'Fera EduSphere'] : $a->author?->only('id', 'name'),
             'created_at' => $a->created_at,
             'can_delete' => $a->tenant_id !== null && ($viewer->hasRole(User::ROLE_ADMIN) || (int) $a->user_id === (int) $viewer->id),
         ];

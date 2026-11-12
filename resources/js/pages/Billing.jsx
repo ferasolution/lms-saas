@@ -156,7 +156,7 @@ function PayDialog({ plan, payTo, tenant, onClose, onDone }) {
     }
 
     return (
-        <Modal open onClose={onClose} title={`Upgrade to ${plan.name}`} description="Pay Fera Learn directly, then send us the transaction ID or receipt number."
+        <Modal open onClose={onClose} title={`Upgrade to ${plan.name}`} description="Pay Fera EduSphere directly, then send us the transaction ID or receipt number."
             footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button busy={busy} onClick={submit} disabled={!available.length}>Send payment details</Button></>}>
             {!available.length ? (
                 <p className="text-graphite">Payment details aren’t set up yet. Please contact Fera Solution to upgrade.</p>

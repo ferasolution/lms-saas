@@ -114,7 +114,7 @@ class InstallerTest extends TestCase
         $this->assertSame(32, strlen(base64_decode(substr($parsed['APP_KEY'], 7))));
         $this->assertSame(getenv('MYSQL_TEST_PASSWORD'), $parsed['DB_PASSWORD']);
         $this->assertSame($token, $parsed['DEPLOY_TOKEN']);
-        $this->assertSame('Fera Learn', $parsed['APP_NAME']);
+        $this->assertSame('Fera EduSphere', $parsed['APP_NAME']);
 
         // Tables, plans and the owner exist in MySQL.
         $this->assertSame('mysql', config('database.default'));

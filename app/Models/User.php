@@ -5,7 +5,9 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -55,6 +57,25 @@ class User extends Authenticatable
     public function hasRole(string ...$roles): bool
     {
         return in_array($this->role, $roles, true);
+    }
+
+    public function studentProfile(): HasOne
+    {
+        return $this->hasOne(StudentProfile::class);
+    }
+
+    /** Students this parent/guardian is linked to. */
+    public function children(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'guardian_student', 'guardian_id', 'student_id')
+            ->withPivot('relation', 'can_pickup')->withTimestamps();
+    }
+
+    /** Parents/guardians linked to this student. */
+    public function guardians(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'guardian_student', 'student_id', 'guardian_id')
+            ->withPivot('relation', 'can_pickup')->withTimestamps();
     }
 
     public function taughtCourses(): HasMany

@@ -16,6 +16,13 @@ use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\MetaController;
 use App\Http\Controllers\Api\TenantRegistrationController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\School\AdmissionController;
+use App\Http\Controllers\Api\School\AttendanceController;
+use App\Http\Controllers\Api\School\DiaryController;
+use App\Http\Controllers\Api\School\OverviewController;
+use App\Http\Controllers\Api\School\StructureController;
+use App\Http\Controllers\Api\School\StudentController;
+use App\Http\Controllers\Api\School\TimetableController;
 use App\Http\Controllers\DeployController;
 use App\Http\Controllers\InstallController;
 use Illuminate\Support\Facades\Route;
@@ -83,6 +90,10 @@ Route::middleware('tenant')->group(function () {
     Route::get('tenant', [MetaController::class, 'tenant']);
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
+    // Public admission form
+    Route::get('admissions/form', [AdmissionController::class, 'form']);
+    Route::post('admissions/apply', [AdmissionController::class, 'apply'])->middleware('throttle:5,1');
+
     Route::middleware(['auth:sanctum', 'role'])->group(function () {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
@@ -126,6 +137,70 @@ Route::middleware('tenant')->group(function () {
         Route::get('quizzes/{quiz}', [QuizController::class, 'show']);
         Route::post('quizzes/{quiz}/start', [QuizController::class, 'start']);
         Route::post('quiz-attempts/{attempt}/submit', [QuizController::class, 'submit']);
+
+        /*
+        | School: families (parents and students)
+        */
+        Route::prefix('school')->group(function () {
+            Route::get('family', [OverviewController::class, 'family'])->middleware('role:parent,student');
+            Route::get('diary', [DiaryController::class, 'index']);
+            Route::post('diary/{entry}/submit', [DiaryController::class, 'submit'])->middleware(['role:parent,student', 'throttle:30,1']);
+            Route::get('timetable/mine', [TimetableController::class, 'mine']);
+            Route::get('timetable/sections/{section}', [TimetableController::class, 'section']);
+            Route::get('leave', [AttendanceController::class, 'leaves']);
+            Route::post('leave', [AttendanceController::class, 'requestLeave'])->middleware(['role:parent,student', 'throttle:10,1']);
+            Route::get('students/{student}', [StudentController::class, 'show']);
+
+            // Staff (teachers and the office)
+            Route::middleware('role:admin,manager,instructor')->group(function () {
+                Route::get('structure', [StructureController::class, 'index']);
+                Route::get('teacher-day', [OverviewController::class, 'teacher']);
+                Route::get('students', [StudentController::class, 'index']);
+                Route::get('attendance', [AttendanceController::class, 'sheet']);
+                Route::post('attendance', [AttendanceController::class, 'save']);
+                Route::get('attendance/month', [AttendanceController::class, 'month']);
+                Route::get('attendance/month.csv', [AttendanceController::class, 'exportMonth']);
+                Route::get('attendance/today', [AttendanceController::class, 'today']);
+                Route::post('leave/{leave}/review', [AttendanceController::class, 'reviewLeave']);
+                Route::post('diary', [DiaryController::class, 'store']);
+                Route::patch('diary/{entry}', [DiaryController::class, 'update']);
+                Route::delete('diary/{entry}', [DiaryController::class, 'destroy']);
+                Route::get('diary/{entry}/submissions', [DiaryController::class, 'submissions']);
+                Route::patch('homework/{submission}', [DiaryController::class, 'check']);
+            });
+
+            // The school office
+            Route::middleware('role:admin,manager')->group(function () {
+                Route::get('overview', [OverviewController::class, 'office']);
+                Route::post('years', [StructureController::class, 'storeYear']);
+                Route::patch('years/{year}', [StructureController::class, 'updateYear']);
+                Route::delete('years/{year}', [StructureController::class, 'destroyYear']);
+                Route::post('classes', [StructureController::class, 'storeClass']);
+                Route::patch('classes/{class}', [StructureController::class, 'updateClass']);
+                Route::delete('classes/{class}', [StructureController::class, 'destroyClass']);
+                Route::post('classes/{class}/sections', [StructureController::class, 'storeSection']);
+                Route::patch('sections/{section}', [StructureController::class, 'updateSection']);
+                Route::delete('sections/{section}', [StructureController::class, 'destroySection']);
+                Route::put('sections/{section}/subjects', [StructureController::class, 'allocate']);
+                Route::put('timetable/sections/{section}', [TimetableController::class, 'save']);
+                Route::post('subjects', [StructureController::class, 'storeSubject']);
+                Route::patch('subjects/{subject}', [StructureController::class, 'updateSubject']);
+                Route::delete('subjects/{subject}', [StructureController::class, 'destroySubject']);
+
+                Route::post('students', [StudentController::class, 'store']);
+                Route::patch('students/{student}', [StudentController::class, 'update']);
+                Route::post('students/promote', [StudentController::class, 'promote']);
+                Route::post('students/{student}/guardians', [StudentController::class, 'addGuardian']);
+                Route::delete('students/{student}/guardians/{guardian}', [StudentController::class, 'removeGuardian']);
+                Route::get('exports/students.csv', [StudentController::class, 'export']);
+
+                Route::get('admissions', [AdmissionController::class, 'index']);
+                Route::post('admissions', [AdmissionController::class, 'store']);
+                Route::patch('admissions/{application}', [AdmissionController::class, 'update']);
+                Route::post('admissions/{application}/enrol', [AdmissionController::class, 'enrol']);
+                Route::delete('admissions/{application}', [AdmissionController::class, 'destroy']);
+            });
+        });
 
         Route::middleware('role:admin,instructor')->group(function () {
             Route::post('courses', [CourseController::class, 'store']);

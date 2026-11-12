@@ -37,7 +37,7 @@ const Landing = lazy(() => import('./pages/Landing'));
 import PlatformSetup from './pages/PlatformSetup';
 import Install from './pages/Install';
 
-const TITLES = { '/': 'Fera Learn', '/register': 'Create your institute', '/login': 'Sign in', '/install': 'Install' };
+const TITLES = { '/': 'Fera EduSphere', '/register': 'Create your institute', '/login': 'Sign in', '/install': 'Install' };
 
 function ScrollAndTitle() {
     const { pathname, hash } = useLocation();
@@ -45,7 +45,7 @@ function ScrollAndTitle() {
         if (!hash) window.scrollTo(0, 0);
         const last = pathname.split('/').filter(Boolean).pop();
         const section = { courses: 'Courses', people: 'People', login: 'Sign in', my: 'My learning', certificates: 'Certificates', payments: 'Payments', settings: 'Settings', profile: 'Profile', platform: 'Owner console', billing: 'Billing', institutes: 'Institutes', subscriptions: 'Plan payments', users: 'Users', activity: 'Activity', health: 'System health', verify: 'Verify certificate' }[last];
-        document.title = TITLES[pathname] ?? (section ? `${section} · Fera Learn` : 'Fera Learn');
+        document.title = TITLES[pathname] ?? (section ? `${section} · Fera EduSphere` : 'Fera EduSphere');
     }, [pathname, hash]);
     return null;
 }

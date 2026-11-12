@@ -52,7 +52,7 @@ const TOUR = [
 ];
 
 const FAQ = [
-    ['Do my students need to install anything?', 'No. Fera Learn works in any browser on a phone, tablet or computer. Students sign in at your institute’s own address.'],
+    ['Do my students need to install anything?', 'No. Fera EduSphere works in any browser on a phone, tablet or computer. Students sign in at your institute’s own address.'],
     ['How do I upload videos?', 'Upload to YouTube (unlisted works well), Vimeo or Bunny Stream and paste the link. Those services stream smoothly on slow connections, which shared hosting can’t do.'],
     ['How do payments work?', 'You add your bank, PayPal, Wise or card payment link in Settings, and price courses in your own currency. Students pay you directly and enter the transaction ID; you approve it on the Payments page and they get access straight away. The money never passes through us.'],
     ['Can I use my own logo and colours?', 'Yes. Upload your logo and pick one of six colour themes. Your sign-in page, dashboard and certificates all carry your name.'],

@@ -7,12 +7,12 @@ import { fieldError } from '../lib/api';
 
 export function Logo({ to = '/', className = '' }) {
     return (
-        <Link to={to} className={`group inline-flex items-center gap-2.5 ${className}`} aria-label="Fera Learn home">
+        <Link to={to} className={`group inline-flex items-center gap-2.5 ${className}`} aria-label="Fera EduSphere home">
             <span className="relative grid h-8 w-8 place-items-center rounded-md bg-ink text-white">
                 <span className="absolute inset-y-1 left-[7px] w-px bg-margin/90" aria-hidden />
                 <span className="font-display text-[15px] font-extrabold leading-none">F</span>
             </span>
-            <span className="font-display text-lg font-bold tracking-tight text-ink-deep">Fera Learn</span>
+            <span className="font-display text-lg font-bold tracking-tight text-ink-deep">Fera EduSphere</span>
         </Link>
     );
 }

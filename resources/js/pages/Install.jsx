@@ -53,7 +53,7 @@ export default function Install() {
     return (
         <div className="ruled min-h-screen px-6 py-12">
             <div className="margin-line mx-auto max-w-xl rounded-lg border border-rule bg-white p-8 pl-10 shadow-sm">
-                <h1 className="text-3xl font-bold">Install Fera Learn</h1>
+                <h1 className="text-3xl font-bold">Install Fera EduSphere</h1>
 
                 {status === null && <p className="mt-4 text-pencil" role="status">Checking the server…</p>}
 
