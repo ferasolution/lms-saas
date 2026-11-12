@@ -86,6 +86,7 @@ export default function TenantLayout() {
             { to: `${t}/attendance`, label: 'Attendance', icon: 'check2' },
             { to: `${t}/diary`, label: 'Diary & homework', icon: 'diary' },
             { to: `${t}/timetable`, label: 'Timetable', icon: 'calendar' },
+            { to: `${t}/exams`, label: 'Exams & results', icon: 'quiz' },
             isOffice && { to: `${t}/fees`, label: 'Fees', icon: 'wallet' },
             isOffice && { to: `${t}/admissions`, label: 'Admissions', icon: 'inbox' },
             isOffice && { to: `${t}/academics`, label: 'Classes & subjects', icon: 'grid' },
@@ -94,6 +95,7 @@ export default function TenantLayout() {
             { to: `${t}/diary`, label: 'Diary & homework', icon: 'diary' },
             { to: `${t}/timetable`, label: 'Timetable', icon: 'calendar' },
             { to: `${t}/attendance`, label: isParent ? 'Attendance & leave' : 'Attendance', icon: 'check2' },
+            { to: `${t}/exams`, label: 'Exams & results', icon: 'quiz' },
             { to: `${t}/fees`, label: 'Fees', icon: 'wallet' },
         ] },
         { label: 'Learning', links: [
