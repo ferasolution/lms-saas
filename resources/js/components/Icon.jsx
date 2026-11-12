@@ -56,6 +56,11 @@ const PATHS = {
     filter: 'M4 5h16l-6 7.5V19l-4 1.5v-8L4 5Z',
     tag: 'M3 12V4h8l9.5 9.5-8 8L3 12Zm5-4h.01',
     message: 'M4 5h16v11H9l-5 4V5Z',
+    diary: 'M6 3h11a2 2 0 0 1 2 2v16H7a2 2 0 0 1-2-2V4a1 1 0 0 1 1-1Zm-1 15a2 2 0 0 1 2-2h12M9 7h6M9 10.5h4',
+    grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+    inbox: 'M4 13V5h16v8M4 13v6h16v-6M4 13h4l1.5 2.5h5L16 13h4',
+    check2: 'M4 12.5 8 16.5 13.5 9M11 16.5l1 0L20 7.5',
+    family: 'M8 7.5a2.5 2.5 0 1 0 0-.01M16.5 9a2 2 0 1 0 0-.01M3.5 20v-2a4.5 4.5 0 0 1 9 0v2M13.5 20v-1.5a3 3 0 0 1 6 0V20',
     clipboard: 'M9 4h6v3H9zM7 5.5H5V21h14V5.5h-2M9 12h6M9 16h4',
 };
 

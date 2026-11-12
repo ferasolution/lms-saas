@@ -65,28 +65,48 @@ export default function TenantLayout() {
     const role = me.user.role;
     const isAdmin = role === 'admin';
     const canTeach = isAdmin || role === 'instructor';
-    const ctx = { me, tenant, isAdmin, canTeach, refresh };
+    const isOffice = isAdmin || role === 'manager';
+    const isStaff = isOffice || role === 'instructor';
+    const isParent = role === 'parent';
+    const isStudent = role === 'student';
+    const ctx = { me, tenant, isAdmin, canTeach, isOffice, isStaff, isParent, isStudent, refresh };
 
     // The lesson player takes the whole screen.
     if (location.pathname.includes(`/${tenant}/learn/`)) {
         return <Outlet context={ctx} />;
     }
 
+    const t = `/${tenant}`;
     const groups = [
-        [
-            { to: `/${tenant}`, label: 'Overview', icon: 'home', end: true },
-            !canTeach && { to: `/${tenant}/my`, label: 'My learning', icon: 'play' },
-            { to: `/${tenant}/courses`, label: canTeach ? 'Courses' : 'Browse courses', icon: 'book' },
-            canTeach && { to: `/${tenant}/grading`, label: 'Grading', icon: 'clipboard' },
-            !canTeach && { to: `/${tenant}/certificates`, label: 'Certificates', icon: 'award' },
-        ],
-        isAdmin && [
-            { to: `/${tenant}/people`, label: 'People', icon: 'users' },
-            { to: `/${tenant}/payments`, label: 'Payments', icon: 'receipt', badge: pending },
-            { to: `/${tenant}/billing`, label: 'Billing', icon: 'wallet' },
-            { to: `/${tenant}/settings`, label: 'Settings', icon: 'settings' },
-        ],
-    ].filter(Boolean).map((g) => g.filter(Boolean));
+        { links: [
+            { to: t, label: 'Overview', icon: 'home', end: true },
+        ] },
+        isStaff && { label: 'School', links: [
+            { to: `${t}/students`, label: 'Students', icon: 'users' },
+            { to: `${t}/attendance`, label: 'Attendance', icon: 'check2' },
+            { to: `${t}/diary`, label: 'Diary & homework', icon: 'diary' },
+            { to: `${t}/timetable`, label: 'Timetable', icon: 'calendar' },
+            isOffice && { to: `${t}/admissions`, label: 'Admissions', icon: 'inbox' },
+            isOffice && { to: `${t}/academics`, label: 'Classes & subjects', icon: 'grid' },
+        ] },
+        (isParent || isStudent) && { label: 'School', links: [
+            { to: `${t}/diary`, label: 'Diary & homework', icon: 'diary' },
+            { to: `${t}/timetable`, label: 'Timetable', icon: 'calendar' },
+            { to: `${t}/attendance`, label: isParent ? 'Attendance & leave' : 'Attendance', icon: 'check2' },
+        ] },
+        { label: 'Learning', links: [
+            isStudent && { to: `${t}/my`, label: 'My learning', icon: 'play' },
+            { to: `${t}/courses`, label: canTeach ? 'Courses' : 'Browse courses', icon: 'book' },
+            canTeach && { to: `${t}/grading`, label: 'Grading', icon: 'clipboard' },
+            isStudent && { to: `${t}/certificates`, label: 'Certificates', icon: 'award' },
+        ] },
+        isAdmin && { label: 'Manage', links: [
+            { to: `${t}/people`, label: 'People', icon: 'users' },
+            { to: `${t}/payments`, label: 'Payments', icon: 'receipt', badge: pending },
+            { to: `${t}/billing`, label: 'Billing', icon: 'wallet' },
+            { to: `${t}/settings`, label: 'Settings', icon: 'settings' },
+        ] },
+    ].filter(Boolean).map((g) => ({ ...g, links: g.links.filter(Boolean) }));
 
     const trialDays = me.tenant.status === 'trial' && me.tenant.trial_ends_at
         ? Math.max(0, Math.ceil((new Date(me.tenant.trial_ends_at) - Date.now()) / 86400000))
@@ -121,10 +141,10 @@ export default function TenantLayout() {
             </div>
 
             <nav className="flex-1 space-y-5 overflow-y-auto px-3" aria-label="Main">
-                {groups.map((links, gi) => (
+                {groups.map((g, gi) => (
                     <div key={gi} className="space-y-1">
-                        {gi > 0 && <p className="px-3 pb-1 text-xs font-bold text-pencil/80">Manage</p>}
-                        {links.map((l) => (
+                        {g.label && <p className="px-3 pb-1 text-xs font-bold text-pencil/80">{g.label}</p>}
+                        {g.links.map((l) => (
                             <NavLink key={l.to} to={l.to} end={l.end}
                                 className={({ isActive }) =>
                                     `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 font-bold transition-colors ${isActive
@@ -187,7 +207,7 @@ export default function TenantLayout() {
             )}
 
             <SearchPalette open={searching} onClose={() => setSearching(false)} tenant={tenant}
-                pages={groups.flat().map((l) => ({ label: l.label, icon: l.icon, to: l.to })).concat([{ label: 'Your profile', icon: 'user', to: `/${tenant}/profile` }])} />
+                pages={groups.flatMap((g) => g.links).map((l) => ({ label: l.label, icon: l.icon, to: l.to })).concat([{ label: 'Your profile', icon: 'user', to: `/${tenant}/profile` }])} />
 
             <main className="min-w-0">
                 <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8 lg:px-12 lg:py-10 print:max-w-none print:p-0">

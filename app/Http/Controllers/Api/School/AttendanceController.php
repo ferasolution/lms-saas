@@ -84,7 +84,7 @@ class AttendanceController extends Controller
                 if (! isset($allowed[$r['student_id']])) {
                     continue;
                 }
-                $rec = AttendanceRecord::firstOrNew(['student_id' => $r['student_id'], 'date' => $date]);
+                $rec = $this->record($r['student_id'], $date);
                 $rec->class_section_id = $section->id;
                 $rec->status = $r['status'];
                 $rec->note = $r['note'] ?? null;
@@ -267,7 +267,7 @@ class AttendanceController extends Controller
             // Approved leave fills the register for those days (keeps anything already marked present).
             if ($data['status'] === 'approved' && $profile?->class_section_id) {
                 foreach (CarbonPeriod::create($leave->from_date, $leave->to_date) as $day) {
-                    $rec = AttendanceRecord::firstOrNew(['student_id' => $leave->student_id, 'date' => $day->toDateString()]);
+                    $rec = $this->record($leave->student_id, $day->toDateString());
                     if ($rec->exists && in_array($rec->status, ['present', 'late'], true)) {
                         continue;
                     }
@@ -285,6 +285,13 @@ class AttendanceController extends Controller
             $leave->from_date->format('M j').' – '.$leave->to_date->format('M j'), '/family');
 
         return response()->json(['ok' => true]);
+    }
+
+    /** Existing record for the day, or a new one. (whereDate: SQLite stores dates with a time part.) */
+    protected function record(int $studentId, string $date): AttendanceRecord
+    {
+        return AttendanceRecord::where('student_id', $studentId)->whereDate('date', $date)->first()
+            ?? new AttendanceRecord(['student_id' => $studentId, 'date' => $date]);
     }
 
     protected function monthRange(?string $month): array
