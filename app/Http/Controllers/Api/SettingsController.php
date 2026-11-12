@@ -39,6 +39,11 @@ class SettingsController extends Controller
             'settings.payments.instructions' => ['nullable', 'string', 'max:1000'],
             'settings.certificate_signatory' => ['nullable', 'string', 'max:120'],
             'settings.currency' => ['nullable', Rule::in(Payments::CURRENCIES)],
+            'settings.address' => ['nullable', 'string', 'max:300'],
+            'settings.library_fine_per_day' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'settings.admissions_open' => ['nullable', 'boolean'],
+            'settings.timezone' => ['nullable', 'timezone'],
+            'settings.locale' => ['nullable', Rule::in(['en', 'ur', 'ar', 'es', 'fr'])],
         ]);
 
         if (isset($data['name'])) {

@@ -509,6 +509,10 @@ class ConsoleController extends Controller
         return response()->json([
             'payments' => PlatformSetting::get('payments', (object) []),
             'support' => PlatformSetting::get('support', (object) []),
+            'ai' => [
+                'has_key' => (bool) \App\Http\Controllers\Api\School\AiController::config()['key'],
+                'model' => \App\Http\Controllers\Api\School\AiController::config()['model'],
+            ],
         ]);
     }
 
@@ -524,7 +528,25 @@ class ConsoleController extends Controller
             'support' => ['sometimes', 'array'],
             'support.email' => ['nullable', 'email', 'max:255'],
             'support.phone' => ['nullable', 'string', 'max:30'],
+            'ai' => ['sometimes', 'array'],
+            'ai.api_key' => ['nullable', 'string', 'max:300'],
+            'ai.model' => ['nullable', 'string', 'max:80'],
+            'ai.remove_key' => ['nullable', 'boolean'],
         ]);
+
+        if (isset($data['ai'])) {
+            $ai = PlatformSetting::get('ai', []) ?: [];
+            if (! empty($data['ai']['api_key'])) {
+                $ai['api_key'] = \Illuminate\Support\Facades\Crypt::encryptString(trim($data['ai']['api_key']));
+            }
+            if (! empty($data['ai']['remove_key'])) {
+                unset($ai['api_key']);
+            }
+            if (! empty($data['ai']['model'])) {
+                $ai['model'] = $data['ai']['model'];
+            }
+            PlatformSetting::put('ai', $ai);
+        }
 
         foreach (['payments', 'support'] as $key) {
             if (array_key_exists($key, $data)) {

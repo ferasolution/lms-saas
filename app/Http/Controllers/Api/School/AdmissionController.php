@@ -31,7 +31,7 @@ class AdmissionController extends Controller
         $t = $this->school->tenant();
 
         return response()->json([
-            'institute' => ['name' => $t->name, 'logo' => data_get($t->settings, 'logo')],
+            'institute' => ['name' => $t->name, 'logo' => data_get($t->settings, 'logo_url')],
             'open' => (bool) data_get($t->settings, 'admissions_open', true),
             'classes' => SchoolClass::orderBy('sort')->orderBy('name')->get(['id', 'name']),
         ]);

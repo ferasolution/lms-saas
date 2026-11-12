@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'tenant' => ResolveTenant::class,
             'role' => EnsureRole::class,
+            'module' => \App\Http\Middleware\EnsureModule::class,
         ]);
 
         // The tenant must be known BEFORE authentication and route-model binding,
