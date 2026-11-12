@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\School\AdmissionController;
 use App\Http\Controllers\Api\School\AttendanceController;
 use App\Http\Controllers\Api\School\DiaryController;
+use App\Http\Controllers\Api\School\ExamController;
 use App\Http\Controllers\Api\School\FeeController;
 use App\Http\Controllers\Api\School\OverviewController;
 use App\Http\Controllers\Api\School\StructureController;
@@ -152,6 +153,8 @@ Route::middleware('tenant')->group(function () {
             Route::post('leave', [AttendanceController::class, 'requestLeave'])->middleware(['role:parent,student', 'throttle:10,1']);
             Route::get('students/{student}', [StudentController::class, 'show']);
             Route::get('fees/mine', [FeeController::class, 'family'])->middleware('role:parent,student');
+            Route::get('exams/mine', [ExamController::class, 'mine'])->middleware('role:parent,student');
+            Route::get('exams/{exam}/report/{student}', [ExamController::class, 'report']);
             Route::get('fees/invoices/{invoice}', [FeeController::class, 'show']);
             Route::post('fees/invoices/{invoice}/report-payment', [FeeController::class, 'reportPayment'])->middleware(['role:parent,student', 'throttle:10,1']);
 
@@ -171,6 +174,14 @@ Route::middleware('tenant')->group(function () {
                 Route::delete('diary/{entry}', [DiaryController::class, 'destroy']);
                 Route::get('diary/{entry}/submissions', [DiaryController::class, 'submissions']);
                 Route::patch('homework/{submission}', [DiaryController::class, 'check']);
+
+                Route::get('grade-scale', [ExamController::class, 'scale']);
+                Route::get('exams', [ExamController::class, 'index']);
+                Route::get('exams/{exam}', [ExamController::class, 'show']);
+                Route::get('exams/{exam}/results', [ExamController::class, 'results']);
+                Route::get('exams/{exam}/results.csv', [ExamController::class, 'exportResults']);
+                Route::get('exam-papers/{paper}/marks', [ExamController::class, 'marks']);
+                Route::put('exam-papers/{paper}/marks', [ExamController::class, 'saveMarks']);
             });
 
             // The school office
@@ -197,6 +208,15 @@ Route::middleware('tenant')->group(function () {
                 Route::post('students/{student}/guardians', [StudentController::class, 'addGuardian']);
                 Route::delete('students/{student}/guardians/{guardian}', [StudentController::class, 'removeGuardian']);
                 Route::get('exports/students.csv', [StudentController::class, 'export']);
+
+                // Exams
+                Route::put('grade-scale', [ExamController::class, 'saveScale']);
+                Route::post('exams', [ExamController::class, 'store']);
+                Route::patch('exams/{exam}', [ExamController::class, 'update']);
+                Route::delete('exams/{exam}', [ExamController::class, 'destroy']);
+                Route::post('exams/{exam}/papers', [ExamController::class, 'addPapers']);
+                Route::patch('exam-papers/{paper}', [ExamController::class, 'updatePaper']);
+                Route::delete('exam-papers/{paper}', [ExamController::class, 'destroyPaper']);
 
                 // Fees
                 Route::get('fees/setup', [FeeController::class, 'setup']);
