@@ -3,11 +3,10 @@ import '@fontsource/bricolage-grotesque/latin-700.css';
 import '@fontsource/bricolage-grotesque/latin-800.css';
 import '@fontsource/atkinson-hyperlegible/latin-400.css';
 import '@fontsource/atkinson-hyperlegible/latin-700.css';
-import { StrictMode, useEffect } from 'react';
+import { lazy, StrictMode, Suspense, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from './components/ui';
-import Landing from './pages/Landing';
 import Register from './pages/Register';
 import FindInstitute from './pages/FindInstitute';
 import Login from './pages/Login';
@@ -25,6 +24,9 @@ import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import PlatformConsole, { PlatformLogin } from './pages/Platform';
 import Verify from './pages/Verify';
+
+// The marketing page carries 3D and animation libraries; app pages don't need them.
+const Landing = lazy(() => import('./pages/Landing'));
 import PlatformSetup from './pages/PlatformSetup';
 import Install from './pages/Install';
 
@@ -47,7 +49,7 @@ function App() {
             <ToastProvider>
                 <ScrollAndTitle />
                 <Routes>
-                    <Route path="/" element={<Landing />} />
+                    <Route path="/" element={<Suspense fallback={<div className="min-h-screen bg-[#0d1d4a]" />}><Landing /></Suspense>} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/login" element={<FindInstitute />} />
                     <Route path="/install" element={<Install />} />
