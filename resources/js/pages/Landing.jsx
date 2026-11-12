@@ -23,7 +23,7 @@ const AUDIENCES = [
     {
         key: 'academy', icon: 'academy', label: 'Academies', short: 'Academy',
         title: 'Sell your courses under your own name',
-        text: 'Publish free and paid courses, take payments by JazzCash, Easypaisa or bank, and give every graduate a certificate they can share.',
+        text: 'Publish free and paid courses, take payments by bank transfer, PayPal, Wise or card link, and give every graduate a certificate they can share.',
         points: ['Free and paid courses with sale prices', 'Payment approvals in one tap', 'Certificates with a public verify link', 'Your logo and colours throughout'],
         shot: 'course',
     },
@@ -54,7 +54,7 @@ const TOUR = [
 const FAQ = [
     ['Do my students need to install anything?', 'No. Fera Learn works in any browser on a phone, tablet or computer. Students sign in at your institute’s own address.'],
     ['How do I upload videos?', 'Upload to YouTube (unlisted works well), Vimeo or Bunny Stream and paste the link. Those services stream smoothly on slow connections, which shared hosting can’t do.'],
-    ['How do payments work?', 'You add your JazzCash, Easypaisa or bank details in Settings. Students pay you directly and enter the transaction ID; you approve it on the Payments page and they get access straight away. The money never passes through us.'],
+    ['How do payments work?', 'You add your bank, PayPal, Wise or card payment link in Settings, and price courses in your own currency. Students pay you directly and enter the transaction ID; you approve it on the Payments page and they get access straight away. The money never passes through us.'],
     ['Can I use my own logo and colours?', 'Yes. Upload your logo and pick one of six colour themes. Your sign-in page, dashboard and certificates all carry your name.'],
     ['What happens after the free trial?', 'You keep everything you built. Choose a plan that fits the number of students you have, or stay on the Free plan for small groups.'],
     ['Is our data kept separate from other institutes?', 'Yes. Every institute has its own address, accounts and courses, and the system checks on every request that people only ever see their own institute’s data.'],
@@ -206,7 +206,7 @@ function Hero() {
 
 /* ---------------------------------------------------------------- product reveal */
 
-function BrowserFrame({ src, alt, url = 'lms.ferasolution.com/bright-minds', className = '', eager = false }) {
+function BrowserFrame({ src, alt, url = 'lms.ferasolution.com/brightpath', className = '', eager = false }) {
     return (
         <div className={`overflow-hidden rounded-2xl bg-white shadow-[0_40px_100px_-30px_rgba(13,29,74,.55)] ring-1 ring-ink-deep/10 ${className}`}>
             <div className="flex items-center gap-2 border-b border-rule bg-[#f3f6fc] px-4 py-2.5">
@@ -237,7 +237,7 @@ function ProductReveal() {
                 <motion.div initial={reduce ? false : { opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.3, duration: 0.7, ease: EASE }}
                     className="absolute -right-2 bottom-10 hidden w-60 rounded-2xl bg-white p-4 shadow-2xl ring-1 ring-rule sm:block lg:-right-14">
                     <p className="text-sm text-pencil">Payment received</p>
-                    <p className="mt-1 font-display text-2xl font-bold text-ink-deep">PKR 3,500</p>
+                    <p className="mt-1 font-display text-2xl font-bold text-ink-deep">$149</p>
                     <p className="mt-2 flex items-center gap-1.5 text-sm font-bold text-leaf"><Icon name="check" size={16} strokeWidth={2.6} />Approved, access opened</p>
                 </motion.div>
                 <motion.div initial={reduce ? false : { opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.45, duration: 0.7, ease: EASE }}
@@ -387,7 +387,7 @@ function LessonTypes() {
             ))}
         </div>
         <ol className="ruled-faint mt-6 rounded-2xl border border-rule bg-paper/60 px-4 py-2">
-            {[['video', 'Welcome and course map', '4 min'], ['book', 'Greetings for every situation', '10 min'], ['quiz', 'Check: everyday conversations', '3 questions']].map(([icon, t, m], j) => (
+            {[['video', 'Welcome and course map', '4 min'], ['book', 'Structuring a five-minute talk', '10 min'], ['quiz', 'Check: structure and delivery', '3 questions']].map(([icon, t, m], j) => (
                 <motion.li key={t} initial={{ opacity: 0, x: -8 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 + j * 0.1 }}
                     className="flex h-8 items-center gap-3 text-[15px] text-graphite">
                     <Icon name={icon} size={16} className="text-ink" /><span className="flex-1 truncate">{t}</span><span className="text-sm text-pencil">{m}</span>
@@ -402,7 +402,7 @@ function QuizTick() {
     const reduce = useReducedMotion();
     return (
         <div className="space-y-2">
-            {['Good morning', 'Good evening', 'Good night'].map((o, i) => (
+            {['Read your slides word for word', 'Open with a question for the room', 'Apologize for being nervous'].map((o, i) => (
                 <motion.div key={o} initial={false} whileInView={i === 1 && !reduce ? { borderColor: ['#d6e3f5', '#1f7a4d'], backgroundColor: ['#ffffff', '#e9f6ef'] } : undefined}
                     viewport={{ once: true }} transition={{ delay: 0.6, duration: 0.4 }}
                     className={`flex items-center gap-3 rounded-xl border-2 px-3 py-2 ${reduce && i === 1 ? 'border-leaf bg-leaf-50' : 'border-rule'}`}>
@@ -419,12 +419,12 @@ function QuizTick() {
 }
 
 function Bars() {
-    const rows = [['Hamza', 100], ['Zainab', 66], ['Hira', 34], ['Omar', 82]];
+    const rows = [['Michael', 100], ['Olivia', 66], ['Ethan', 34], ['Ava', 82]];
     return (
         <div className="space-y-3">
             {rows.map(([n, v], i) => (
                 <div key={n} className="flex items-center gap-3">
-                    <span className="w-14 text-sm font-bold text-graphite">{n}</span>
+                    <span className="w-16 text-sm font-bold text-graphite">{n}</span>
                     <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-ink-50">
                         <motion.div initial={{ width: 0 }} whileInView={{ width: `${v}%` }} viewport={{ once: true }} transition={{ delay: 0.2 + i * 0.12, duration: 1, ease: EASE }}
                             className={`h-full rounded-full ${v === 100 ? 'bg-leaf' : 'bg-ink'}`} />
@@ -476,8 +476,8 @@ function Stamp() {
             style={{ backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0, transparent 19px, #e3ecf8 19px, #e3ecf8 20px)' }}>
             <span className="absolute inset-y-0 left-6 w-[2px] bg-[#e5484d]/70" />
             <p className="pl-6 text-sm text-pencil">This certifies that</p>
-            <p className="pl-6 font-display text-2xl font-extrabold text-ink-deep">Hamza Raza</p>
-            <p className="pl-6 text-sm text-pencil">completed Basic Computer Skills</p>
+            <p className="pl-6 font-display text-2xl font-extrabold text-ink-deep">Michael Brown</p>
+            <p className="pl-6 text-sm text-pencil">completed Public Speaking Essentials</p>
             <motion.span initial={reduce ? false : { scale: 2.2, opacity: 0, rotate: -24 }} whileInView={{ scale: 1, opacity: 1, rotate: -12 }} viewport={{ once: true }}
                 transition={{ delay: 0.5, type: 'spring', stiffness: 260, damping: 16 }}
                 className="absolute right-4 bottom-3 flex items-center gap-1.5 rounded-lg border-2 border-leaf px-2.5 py-1 text-sm font-extrabold text-leaf">

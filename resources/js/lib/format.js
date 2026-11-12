@@ -30,10 +30,30 @@ export function relative(value) {
     return date(value);
 }
 
-export function money(amount, currency = 'PKR') {
+export function money(amount, currency = 'USD') {
     const n = Number(amount) || 0;
-    return `${currency} ${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    try {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: n % 1 ? 2 : 0 }).format(n);
+    } catch {
+        return `${currency} ${n.toLocaleString()}`;
+    }
 }
+
+/** [{ currency, amount }] → "$1,200 · €300" */
+export function moneyList(list) {
+    if (!list?.length) return money(0);
+    return list.map((x) => money(x.amount, x.currency)).join(' · ');
+}
+
+export const PAYMENT_METHODS = {
+    bank: { label: 'Bank transfer', icon: 'building', hint: 'Bank name, account name, account number / IBAN, SWIFT or routing number' },
+    paypal: { label: 'PayPal', icon: 'wallet', hint: 'PayPal email or paypal.me link' },
+    wise: { label: 'Wise', icon: 'globe', hint: 'Wise email or @Wisetag' },
+    card: { label: 'Card', icon: 'wallet', hint: 'A payment link from Stripe, Square or similar' },
+    other: { label: 'Other', icon: 'receipt', hint: '' },
+};
+
+export const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'NZD', 'AED', 'SAR', 'INR', 'PKR', 'SGD', 'ZAR', 'NGN', 'KES'];
 
 export function coursePrice(c) {
     if (c.is_free || Number(c.price) === 0) return { now: 'Free', was: null, free: true };

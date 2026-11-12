@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import Icon from '../components/Icon';
+import ResetPasswordDialog, { temporaryPassword } from '../components/ResetPasswordDialog';
 import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Field, Menu, SlideOver, Skeleton, useToast } from '../components/ui';
 
 const ROLES = [
@@ -25,6 +26,7 @@ export default function People() {
     const [counts, setCounts] = useState({});
     const [editing, setEditing] = useState(params.get('new') ? { role: params.get('role') || 'student' } : null);
     const [disabling, setDisabling] = useState(null);
+    const [resetting, setResetting] = useState(null);
 
     useEffect(() => {
         const t = setTimeout(() => setQuery(search.trim()), 250);
@@ -131,7 +133,8 @@ export default function People() {
                                             <td className="order-first ml-auto md:order-none md:px-5 md:text-right">
                                                 <Menu label={`Actions for ${p.name}`} items={[
                                                     { label: 'Edit details', icon: 'edit', onClick: () => setEditing(p) },
-                                                    !self && p.is_active && { label: 'Disable access', icon: 'lock', danger: true, onClick: () => setDisabling(p) },
+                                                    !self && { label: 'Reset password', icon: 'lock', onClick: () => setResetting(p) },
+                                                    !self && p.is_active && { label: 'Disable access', icon: 'x', danger: true, onClick: () => setDisabling(p) },
                                                     !self && !p.is_active && { label: 'Restore access', icon: 'check', onClick: () => setActive(p, true) },
                                                 ]} />
                                             </td>
@@ -146,6 +149,14 @@ export default function People() {
 
             <PersonEditor open={editing !== null} person={editing} tenant={tenant} self={editing?.id === me.user.id}
                 onClose={closeEditor} onSaved={(msg) => { closeEditor(); toast(msg); load(); }} />
+
+            <ResetPasswordDialog open={!!resetting} person={resetting} signInUrl={`${window.location.origin}/${tenant}/login`}
+                onClose={() => setResetting(null)}
+                reset={async () => {
+                    const password = temporaryPassword();
+                    await api(`users/${resetting.id}`, { method: 'PATCH', tenant, body: { password } });
+                    return password;
+                }} />
 
             <ConfirmDialog open={!!disabling} title="Disable access?" confirmLabel="Disable access"
                 onConfirm={() => setActive(disabling, false)} onClose={() => setDisabling(null)}>
@@ -222,7 +233,7 @@ function PersonEditor({ open, person, tenant, self, onClose, onSaved }) {
                 <Field label="Full name" name="name" error={error} value={form.name ?? ''} onChange={set('name')} autoComplete="off" />
                 <div className="grid gap-5 sm:grid-cols-2">
                     <Field label="Email" name="email" type="email" error={error} value={form.email ?? ''} onChange={set('email')} autoComplete="off" />
-                    <Field label="Phone (optional)" name="phone" type="tel" error={error} value={form.phone ?? ''} onChange={set('phone')} placeholder="03xx xxxxxxx" />
+                    <Field label="Phone (optional)" name="phone" type="tel" error={error} value={form.phone ?? ''} onChange={set('phone')} placeholder="+1 555 123 4567" />
                 </div>
                 <div>
                     <Field label={isNew ? 'Temporary password' : 'New password (optional)'} name="password" error={error}

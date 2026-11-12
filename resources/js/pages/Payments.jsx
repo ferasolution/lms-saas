@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useOutletContext } from 'react-router-dom';
 import { api } from '../lib/api';
-import { dateTime, money } from '../lib/format';
+import { dateTime, money, PAYMENT_METHODS } from '../lib/format';
 import Icon from '../components/Icon';
 import { Avatar, Badge, Button, EmptyState, Field, Modal, PageHeader, Skeleton, Tabs, useToast } from '../components/ui';
 
-const METHOD = { jazzcash: 'JazzCash', easypaisa: 'Easypaisa', bank: 'Bank transfer', cash: 'Cash' };
+const METHOD = Object.fromEntries(Object.entries(PAYMENT_METHODS).map(([k, v]) => [k, v.label]));
 
 export default function Payments() {
     const { tenant, isAdmin, me } = useOutletContext();
@@ -55,7 +55,7 @@ export default function Payments() {
 
             {noAccounts && (
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-amber-900 ring-1 ring-amber-600/20">
-                    <p className="flex items-center gap-2"><Icon name="alert" size={18} />Add your JazzCash, Easypaisa or bank details so students know where to pay.</p>
+                    <p className="flex items-center gap-2"><Icon name="alert" size={18} />Add your bank, PayPal or Wise details so students know where to pay.</p>
                     <Button size="sm" variant="secondary" as={Link} to={`/${tenant}/settings?tab=payments`}>Add payment details</Button>
                 </div>
             )}
@@ -63,7 +63,7 @@ export default function Payments() {
             <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <Stat label="Waiting for you" value={data?.summary.pending} tone="amber" />
                 <Stat label="Approved" value={data?.summary.paid} />
-                <Stat label="Revenue" value={data ? money(data.summary.revenue) : undefined} className="col-span-2 sm:col-span-1" />
+                <Stat label="Revenue" value={data ? money(data.summary.revenue, me.tenant.settings?.currency ?? 'USD') : undefined} className="col-span-2 sm:col-span-1" />
             </div>
 
             <Tabs className="mt-8" value={status} onChange={setStatus} tabs={[

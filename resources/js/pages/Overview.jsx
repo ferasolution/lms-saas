@@ -97,7 +97,7 @@ export default function Overview() {
                 <Stat icon="book" label={canTeach ? 'Courses' : 'Courses available'} value={stats?.courses.total} sub={canTeach && stats ? `${stats.courses.published} published · ${stats.courses.draft} draft` : null} />
                 {canTeach && <Stat icon="sparkle" label="Enrolments" value={stats?.enrollments} sub={stats?.completions !== undefined ? `${stats.completions} completed` : 'Across your courses'} />}
                 {isAdmin && <Stat icon="users" label="Students" value={stats ? students : undefined} sub={stats ? `${teachers} teaching staff` : null} />}
-                {isAdmin && <Stat icon="wallet" label="Revenue" value={stats ? money(stats.revenue ?? 0) : undefined} sub={stats?.pending_payments ? <Link to={`/${tenant}/payments`} className="font-bold text-amber-700 hover:underline">{stats.pending_payments} payment{stats.pending_payments === 1 ? '' : 's'} to review</Link> : 'Approved payments'} />}
+                {isAdmin && <Stat icon="wallet" label="Revenue" value={stats ? money(stats.revenue ?? 0, me.tenant.settings?.currency ?? 'USD') : undefined} sub={stats?.pending_payments ? <Link to={`/${tenant}/payments`} className="font-bold text-amber-700 hover:underline">{stats.pending_payments} payment{stats.pending_payments === 1 ? '' : 's'} to review</Link> : 'Approved payments'} />}
             </section>
 
             <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">

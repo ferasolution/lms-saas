@@ -78,7 +78,7 @@ seeds the plans and rebuilds Laravel's caches. No SSH or cPanel access is needed
 ## Roadmap
 
 - **Phase 1 (in progress):** institutes, roles, courses ✔ · sections & lessons · video (Bunny Stream) ·
-  quizzes · enrolment & progress · Stripe / JazzCash / Easypaisa · certificates · SaaS billing
+  quizzes · enrolment & progress · bank / PayPal / Wise payments (Stripe next) · certificates · SaaS billing
 - **Phase 2:** school mode — classes, attendance, timetable, exams, report cards, parent portal, fees
 - **Phase 3:** corporate mode, live classes, analytics, custom domains
 - **Phase 4:** mobile app (React Native, same API)

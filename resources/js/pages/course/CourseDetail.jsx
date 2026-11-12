@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { coursePrice, dateTime, duration, LESSON_TYPES, titleCase } from '../../lib/format';
+import { coursePrice, dateTime, duration, LESSON_TYPES, PAYMENT_METHODS, titleCase } from '../../lib/format';
 import Icon from '../../components/Icon';
 import CourseCover from '../../components/CourseCover';
 import RichText from '../../components/RichText';
@@ -168,17 +168,11 @@ export default function CourseDetail({ data, reload, tenant, me }) {
     );
 }
 
-const METHODS = [
-    { value: 'jazzcash', label: 'JazzCash' },
-    { value: 'easypaisa', label: 'Easypaisa' },
-    { value: 'bank', label: 'Bank transfer' },
-    { value: 'cash', label: 'Cash at institute' },
-];
-
 function PaymentDialog({ open, onClose, course, price, tenant, me, pending, onDone }) {
     const pay = me?.tenant?.settings?.payments ?? {};
-    const available = METHODS.filter((m) => m.value === 'cash' || pay[m.value]);
-    const [method, setMethod] = useState(available[0]?.value ?? 'cash');
+    const configured = ['bank', 'paypal', 'wise', 'card'].filter((k) => pay[k]);
+    const available = (configured.length ? configured : ['other']).map((k) => ({ value: k, label: PAYMENT_METHODS[k].label }));
+    const [method, setMethod] = useState(available[0]?.value ?? 'other');
     const [reference, setReference] = useState(pending?.payment_reference ?? '');
     const [note, setNote] = useState('');
     const [error, setError] = useState(null);
@@ -198,7 +192,8 @@ function PaymentDialog({ open, onClose, course, price, tenant, me, pending, onDo
         }
     }
 
-    const account = method === 'cash' ? null : pay[method];
+    const account = method === 'other' ? null : pay[method];
+    const support = me?.tenant?.settings?.support_email || me?.tenant?.settings?.support_phone;
 
     return (
         <Modal open={open} onClose={onClose} title="Pay for this course" description={`${course.title} · ${price.now}`}
@@ -210,7 +205,7 @@ function PaymentDialog({ open, onClose, course, price, tenant, me, pending, onDo
                 <ol className="space-y-5">
                     <li>
                         <p className="font-bold text-graphite">1. Choose how you’ll pay</p>
-                        <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                             {available.map((m) => (
                                 <button key={m.value} type="button" onClick={() => setMethod(m.value)} aria-pressed={method === m.value}
                                     className={`h-11 rounded-lg border font-bold transition ${method === m.value ? 'border-ink bg-ink-50 text-ink-deep' : 'border-rule text-pencil hover:border-ink/30'}`}>
@@ -222,14 +217,19 @@ function PaymentDialog({ open, onClose, course, price, tenant, me, pending, onDo
                     <li>
                         <p className="font-bold text-graphite">2. Send <span className="text-ink-deep">{price.now}</span></p>
                         <div className="mt-2 rounded-xl bg-ink-50 px-4 py-3 text-graphite">
-                            {account ? <p className="font-bold whitespace-pre-line text-ink-deep">{account}</p>
-                                : <p>Pay at the institute’s office and ask for a receipt number.</p>}
+                            {method === 'card' && account ? (
+                                <a href={account} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-bold text-ink hover:underline">Pay by card<Icon name="external" size={16} /></a>
+                            ) : account ? (
+                                <p className="font-bold break-words whitespace-pre-line text-ink-deep">{account}</p>
+                            ) : (
+                                <p>Ask the institute how to pay{support ? ` (${support})` : ''}, then enter your receipt number below.</p>
+                            )}
                             {pay.instructions && <p className="mt-2 text-sm whitespace-pre-line text-pencil">{pay.instructions}</p>}
                         </div>
                     </li>
                     <li>
                         <Field label="3. Transaction ID or receipt number" name="payment_reference" error={error} value={reference}
-                            onChange={(e) => setReference(e.target.value)} placeholder="e.g. 0123456789" hint="The institute uses this to find your payment." />
+                            onChange={(e) => setReference(e.target.value)} placeholder="e.g. 5TY12345AB678901C" hint="From your bank, PayPal, Wise or card receipt. The institute uses it to find your payment." />
                     </li>
                 </ol>
                 <Field label="Message for the institute (optional)" value={note} onChange={(e) => setNote(e.target.value)} />

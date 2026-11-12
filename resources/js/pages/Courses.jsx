@@ -291,7 +291,7 @@ function CourseEditor({ open, course, tenant, onClose, onSaved }) {
                         onChange={(v) => setForm({ ...form, is_free: v })} />
                     {!form.is_free && (
                         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                            <Field label="Price (PKR)" name="price" type="number" min="0" inputMode="numeric" error={error} value={form.price} onChange={set('price')} />
+                            <Field label="Price" name="price" type="number" min="0" inputMode="numeric" error={error} value={form.price} onChange={set('price')} />
                             <Field label="Sale price (optional)" name="sale_price" type="number" min="0" inputMode="numeric" error={error} value={form.sale_price} onChange={set('sale_price')} />
                         </div>
                     )}

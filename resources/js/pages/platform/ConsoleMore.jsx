@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import Icon from '../../components/Icon';
-import { Avatar, Badge, Button, EmptyState, Field, Modal, PageHeader, Skeleton, Tabs, useToast } from '../../components/ui';
-import { ActivityList, call, dateTime, Kpi, money, Panel, relative, SearchBox, useDebounced, usd } from './shared';
+import { Avatar, Badge, Button, EmptyState, Field, Menu, Modal, PageHeader, Skeleton, Tabs, useToast } from '../../components/ui';
+import { ActivityList, call, dateTime, Kpi, money, moneyList, Panel, PAYMENT_METHODS, relative, SearchBox, useDebounced, usd } from './shared';
+import ResetPasswordDialog from '../../components/ResetPasswordDialog';
 import { OrderBadge, SubBadge } from './ConsoleTenants';
 
-const METHOD = { jazzcash: 'JazzCash', easypaisa: 'Easypaisa', bank: 'Bank transfer', cash: 'Cash' };
+const METHOD = Object.fromEntries(Object.entries(PAYMENT_METHODS).map(([k, v]) => [k, v.label]));
 const ROLE = { admin: 'Admin', instructor: 'Instructor', student: 'Student', parent: 'Parent', manager: 'Manager' };
 
 /* ------------------------------------------------------------ plan payments */
@@ -111,7 +112,7 @@ export function ConsolePayments() {
             <div className="mt-6 grid grid-cols-3 gap-3">
                 <Kpi label="Pending at institutes" value={data?.summary.pending} tone="amber" />
                 <Kpi label="Approved" value={data?.summary.paid} />
-                <Kpi label="Total collected" value={data ? money(data.summary.volume) : undefined} />
+                <Kpi label="Total collected" value={data ? moneyList(data.summary.volume) : undefined} />
             </div>
             <div className="mt-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <Tabs value={status} onChange={setStatus} className="border-b-0" tabs={[
@@ -148,6 +149,9 @@ export function ConsolePayments() {
 /* ------------------------------------------------------------ users */
 
 export function ConsoleUsers() {
+    const toast = useToast();
+    const [resetting, setResetting] = useState(null);
+    const [reload, setReload] = useState(0);
     const [role, setRole] = useState('');
     const [search, setSearch] = useState('');
     const q = useDebounced(search);
@@ -158,7 +162,17 @@ export function ConsoleUsers() {
         if (role) qs.set('role', role);
         if (q.trim()) qs.set('search', q.trim());
         call(`users?${qs}`).then(setData);
-    }, [role, q]);
+    }, [role, q, reload]);
+
+    async function setAccess(u, active) {
+        try {
+            await call(`users/${u.id}`, { method: 'PATCH', body: { is_active: active } });
+            toast(active ? `${u.name} can sign in again` : `${u.name} can no longer sign in`);
+            setReload((n) => n + 1);
+        } catch (err) {
+            toast(err.message, 'error');
+        }
+    }
 
     const total = data ? Object.values(data.roles).reduce((a, b) => a + Number(b), 0) : null;
 
@@ -176,7 +190,7 @@ export function ConsoleUsers() {
                 {!data ? <div className="p-5"><Skeleton className="h-48" /></div> : data.data.length === 0 ? <p className="p-8 text-center text-pencil">No users found.</p> : (
                     <table className="w-full min-w-[48rem] text-left">
                         <thead className="border-b border-rule bg-paper text-sm text-pencil">
-                            <tr>{['Name', 'Institute', 'Role', 'Last sign-in', 'Joined', 'Access'].map((h) => <th key={h} className="px-4 py-3 font-bold">{h}</th>)}</tr>
+                            <tr>{['Name', 'Institute', 'Role', 'Last sign-in', 'Joined', 'Access', ''].map((h, i) => <th key={i} className="px-4 py-3 font-bold">{h}</th>)}</tr>
                         </thead>
                         <tbody className="divide-y divide-rule">
                             {data.data.map((u) => (
@@ -192,6 +206,14 @@ export function ConsoleUsers() {
                                     <td className="px-4 py-3 text-pencil">{relative(u.last_login_at)}</td>
                                     <td className="px-4 py-3 text-pencil">{dateTime(u.created_at)}</td>
                                     <td className="px-4 py-3">{u.is_active ? <Badge tone="published" dot>Active</Badge> : <Badge tone="danger" dot>Disabled</Badge>}</td>
+                                    <td className="px-4 py-3 text-right">
+                                        <Menu label={`Actions for ${u.name}`} items={[
+                                            { label: 'Reset password', icon: 'lock', onClick: () => setResetting(u) },
+                                            u.is_active
+                                                ? { label: 'Disable access', icon: 'x', danger: true, onClick: () => setAccess(u, false) }
+                                                : { label: 'Restore access', icon: 'check', onClick: () => setAccess(u, true) },
+                                        ]} />
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -199,6 +221,9 @@ export function ConsoleUsers() {
                 )}
             </div>
             {data && data.meta.total > data.data.length && <p className="mt-3 text-sm text-pencil">Showing the newest {data.data.length} of {data.meta.total}. Search to find someone specific.</p>}
+            <ResetPasswordDialog open={!!resetting} person={resetting} signInUrl={resetting?.tenant ? `${window.location.origin}/${resetting.tenant.slug}/login` : null}
+                onClose={() => setResetting(null)}
+                reset={async () => (await call(`users/${resetting.id}/reset-password`, { method: 'POST' })).password} />
         </div>
     );
 }
@@ -325,7 +350,7 @@ export function ConsoleSettings() {
 
     useEffect(() => {
         call('settings').then((s) => setForm({
-            jazzcash: s.payments?.jazzcash ?? '', easypaisa: s.payments?.easypaisa ?? '', bank: s.payments?.bank ?? '', instructions: s.payments?.instructions ?? '',
+            bank: s.payments?.bank ?? '', paypal: s.payments?.paypal ?? '', wise: s.payments?.wise ?? '', card: s.payments?.card ?? '', instructions: s.payments?.instructions ?? '',
             email: s.support?.email ?? '', phone: s.support?.phone ?? '',
         }));
     }, []);
@@ -340,7 +365,7 @@ export function ConsoleSettings() {
         setError(null);
         try {
             await call('settings', { method: 'PUT', body: {
-                payments: { jazzcash: form.jazzcash || null, easypaisa: form.easypaisa || null, bank: form.bank || null, instructions: form.instructions || null },
+                payments: { bank: form.bank || null, paypal: form.paypal || null, wise: form.wise || null, card: form.card || null, instructions: form.instructions || null },
                 support: { email: form.email || null, phone: form.phone || null },
             } });
             toast('Settings saved');
@@ -357,12 +382,15 @@ export function ConsoleSettings() {
             <Panel title="Where institutes pay you" className="mt-8">
                 <div className="space-y-5">
                     <p className="text-pencil">Shown on every institute’s Billing page when they upgrade.</p>
+                    <Field label="Bank transfer" as="textarea" rows={4} value={form.bank} onChange={set('bank')} error={err('payments.bank')}
+                        placeholder={'Bank name\nAccount name\nAccount number / IBAN\nRouting number or SWIFT'} />
                     <div className="grid gap-5 sm:grid-cols-2">
-                        <Field label="JazzCash" value={form.jazzcash} onChange={set('jazzcash')} error={err('payments.jazzcash')} placeholder="0300 1234567 (Fera Solution)" />
-                        <Field label="Easypaisa" value={form.easypaisa} onChange={set('easypaisa')} error={err('payments.easypaisa')} placeholder="0345 1234567 (Fera Solution)" />
+                        <Field label="PayPal" value={form.paypal} onChange={set('paypal')} error={err('payments.paypal')} placeholder="billing@ferasolution.com" />
+                        <Field label="Wise" value={form.wise} onChange={set('wise')} error={err('payments.wise')} placeholder="billing@ferasolution.com or @ferasolution" />
                     </div>
-                    <Field label="Bank account" as="textarea" rows={3} value={form.bank} onChange={set('bank')} error={err('payments.bank')} placeholder={'Bank name\nAccount title\nIBAN'} />
-                    <Field label="Instructions" as="textarea" rows={2} value={form.instructions} onChange={set('instructions')} placeholder="e.g. Write your institute address in the payment note." />
+                    <Field label="Card payment link" type="url" value={form.card} onChange={set('card')} error={err('payments.card')} placeholder="https://buy.stripe.com/…"
+                        hint="Optional. A Stripe, Square or PayPal payment link for card payments." />
+                    <Field label="Instructions" as="textarea" rows={2} value={form.instructions} onChange={set('instructions')} placeholder="e.g. Put your institute’s address in the payment reference." />
                 </div>
             </Panel>
             <Panel title="Support contact" className="mt-6">

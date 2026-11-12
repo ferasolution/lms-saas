@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { api, upload } from '../lib/api';
 import { applyBrand, BRANDS } from '../lib/brand';
+import { CURRENCIES } from '../lib/format';
 import Icon from '../components/Icon';
 import { Button, Field, FileDrop, PageHeader, Tabs, useToast } from '../components/ui';
 
@@ -20,8 +21,10 @@ export default function Settings() {
         support_email: s.support_email ?? '',
         support_phone: s.support_phone ?? '',
         certificate_signatory: s.certificate_signatory ?? '',
-        jazzcash: s.payments?.jazzcash ?? '',
-        easypaisa: s.payments?.easypaisa ?? '',
+        currency: s.currency ?? 'USD',
+        paypal: s.payments?.paypal ?? '',
+        wise: s.payments?.wise ?? '',
+        card: s.payments?.card ?? '',
         bank: s.payments?.bank ?? '',
         instructions: s.payments?.instructions ?? '',
     }));
@@ -67,9 +70,11 @@ export default function Settings() {
                         support_email: form.support_email || null,
                         support_phone: form.support_phone || null,
                         certificate_signatory: form.certificate_signatory || null,
+                        currency: form.currency,
                         payments: {
-                            jazzcash: form.jazzcash || null,
-                            easypaisa: form.easypaisa || null,
+                            paypal: form.paypal || null,
+                            wise: form.wise || null,
+                            card: form.card || null,
                             bank: form.bank || null,
                             instructions: form.instructions || null,
                         },
@@ -103,11 +108,16 @@ export default function Settings() {
                 {tab === 'institute' && (
                     <Card>
                         <Field label="Institute name" name="name" error={error} value={form.name} onChange={set('name')} />
+                        <Field label="Currency" hint="Used for new courses and your revenue figures.">
+                            <select value={form.currency} onChange={set('currency')} className="h-11 w-full rounded-lg border border-rule bg-white px-3 focus:border-ink focus:outline-none sm:w-60">
+                                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </Field>
                         <Field label="Welcome message on your sign-in page" value={form.welcome_message} onChange={set('welcome_message')} error={err('welcome_message')}
                             placeholder="e.g. Welcome back! Classes resume on Monday." maxLength={300} />
                         <div className="grid gap-5 sm:grid-cols-2">
                             <Field label="Support email" type="email" value={form.support_email} onChange={set('support_email')} error={err('support_email')} hint="Shown to students who need help." />
-                            <Field label="Support phone / WhatsApp" value={form.support_phone} onChange={set('support_phone')} error={err('support_phone')} />
+                            <Field label="Support phone / WhatsApp" value={form.support_phone} onChange={set('support_phone')} error={err('support_phone')} placeholder="+1 555 123 4567" />
                         </div>
                         <div className="rounded-xl bg-paper p-4 text-sm text-pencil">
                             Your sign-in page: <strong className="text-graphite">{window.location.host}/{tenant}/login</strong>
@@ -146,15 +156,17 @@ export default function Settings() {
                 )}
 
                 {tab === 'payments' && (
-                    <Card description="Students see these when they buy a paid course. They pay you directly, then send the transaction ID for you to approve on the Payments page.">
+                    <Card description="Students see these when they buy a paid course. They pay you directly, then send the transaction ID or receipt number for you to approve on the Payments page. Fill in only the ones you use.">
+                        <Field label="Bank transfer" as="textarea" rows={4} value={form.bank} onChange={set('bank')} error={err('bank')}
+                            placeholder={'Chase Bank\nAccount name: Brightpath Academy LLC\nAccount number: 000123456789\nRouting (ABA): 021000021 · SWIFT: CHASUS33'} />
                         <div className="grid gap-5 sm:grid-cols-2">
-                            <Field label="JazzCash account" value={form.jazzcash} onChange={set('jazzcash')} error={err('jazzcash')} placeholder="0300 1234567 (Account title)" />
-                            <Field label="Easypaisa account" value={form.easypaisa} onChange={set('easypaisa')} error={err('easypaisa')} placeholder="0345 1234567 (Account title)" />
+                            <Field label="PayPal" value={form.paypal} onChange={set('paypal')} error={err('paypal')} placeholder="payments@yourschool.com or paypal.me/yourschool" />
+                            <Field label="Wise" value={form.wise} onChange={set('wise')} error={err('wise')} placeholder="payments@yourschool.com or @yourschool" />
                         </div>
-                        <Field label="Bank account" as="textarea" rows={3} value={form.bank} onChange={set('bank')} error={err('bank')}
-                            placeholder={'Meezan Bank\nAccount title: Bright Minds Academy\nIBAN: PK00 MEZN 0000 0000 0000 0000'} />
+                        <Field label="Card payment link" type="url" value={form.card} onChange={set('card')} error={err('card')}
+                            placeholder="https://buy.stripe.com/…" hint="A payment link from Stripe, Square, PayPal or similar. Students pay there and send you the receipt number." />
                         <Field label="Extra instructions (optional)" as="textarea" rows={3} value={form.instructions} onChange={set('instructions')} error={err('instructions')}
-                            placeholder="e.g. Write your full name in the payment note." />
+                            placeholder="e.g. Put your full name in the payment reference." />
                         <p className="flex items-start gap-2 text-sm text-pencil"><Icon name="lock" size={16} className="mt-0.5 shrink-0" />Only signed-in students of your institute can see these details.</p>
                     </Card>
                 )}
@@ -162,7 +174,7 @@ export default function Settings() {
                 {tab === 'certificates' && (
                     <Card description="Certificates are issued automatically when a student finishes every lesson of a course with certificates turned on.">
                         <Field label="Signed by" value={form.certificate_signatory} onChange={set('certificate_signatory')} error={err('certificate_signatory')}
-                            placeholder="e.g. Ayesha Khan, Principal" hint="Leave empty to show the course instructor’s name." />
+                            placeholder="e.g. Emily Carter, Principal" hint="Leave empty to show the course instructor’s name." />
                         <p className="text-sm text-pencil">Every certificate has a code that anyone can check at <strong className="text-graphite">{window.location.host}/verify</strong>.</p>
                     </Card>
                 )}

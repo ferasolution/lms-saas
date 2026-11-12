@@ -95,7 +95,7 @@ export default function Register() {
 
                     <div className="mt-8 space-y-5">
                         <Field label="Institute name" name="institute_name" error={error} value={form.institute_name} onChange={set('institute_name')}
-                            placeholder={form.type === 'school' ? 'e.g. City Grammar School' : form.type === 'corporate' ? 'e.g. Acme Pvt Ltd' : 'e.g. Bright Minds Academy'} autoFocus />
+                            placeholder={form.type === 'school' ? 'e.g. Lincoln High School' : form.type === 'corporate' ? 'e.g. Northwind Inc.' : 'e.g. Bright Minds Academy'} autoFocus />
 
                         <Field label="Your address" name="slug" error={error} hint="Lowercase letters, numbers and dashes. This is where your people sign in.">
                             <div className="flex h-11 items-center overflow-hidden rounded-lg border border-rule bg-white transition focus-within:border-ink focus-within:ring-4 focus-within:ring-ink/10">

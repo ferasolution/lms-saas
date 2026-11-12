@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
 
 /**
  * Payment requests from students for paid courses. An admin checks the
- * transaction in their JazzCash / Easypaisa / bank app, then approves it.
+ * transaction in their bank, PayPal or Wise account, then approves it.
  */
 class OrderController extends Controller
 {

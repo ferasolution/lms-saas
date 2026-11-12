@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../../components/Icon';
 import { Skeleton } from '../../components/ui';
-import { ActivityList, Bars, call, date, Kpi, money, Panel, StatusBadge, TYPE, usd } from './shared';
+import { ActivityList, Bars, call, date, Kpi, moneyList, Panel, StatusBadge, TYPE, usd } from './shared';
 
 export default function ConsoleOverview() {
     const navigate = useNavigate();
@@ -37,7 +37,7 @@ export default function ConsoleOverview() {
                     sub={o && <>{o.tenants.active} active · {o.tenants.trial} trial · {o.tenants.suspended} suspended</>} />
                 <Kpi icon="wallet" label="Paying institutes" value={o?.tenants.paying} sub={o && `${o.tenants.new_30_days} new sign-ups in 30 days`} />
                 <Kpi icon="sparkle" label="Your revenue" value={o ? usd(o.revenue.subscriptions_total) : undefined} sub={o && `${usd(o.revenue.subscriptions_month)} this month`} />
-                <Kpi icon="receipt" label="Fees collected by institutes" value={o ? money(o.revenue.institute_fees_total) : undefined} sub={o && `${money(o.revenue.institute_fees_month)} this month`} />
+                <Kpi icon="receipt" label="Fees collected by institutes" value={o ? moneyList(o.revenue.institute_fees) : undefined} sub={o && `${moneyList(o.revenue.institute_fees_month)} this month`} />
                 <Kpi icon="users" label="Students" value={o?.people.students} sub={o && `${o.people.teachers} teachers · ${o.people.users} people in total`} />
                 <Kpi icon="user" label="Active in last 7 days" value={o?.people.active_7_days} sub="Signed in at least once" />
                 <Kpi icon="book" label="Courses" value={o?.learning.courses} sub={o && `${o.learning.published} published · ${o.learning.enrollments} enrolments`} />

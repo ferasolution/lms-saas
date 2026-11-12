@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { session } from '../../lib/api';
 import Icon from '../../components/Icon';
 import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Field, Modal, PageHeader, Progress, Skeleton, Tabs, useToast } from '../../components/ui';
-import { ActivityList, call, date, dateTime, money, Panel, PlanBadge, relative, SearchBox, StatusBadge, TYPE, useDebounced, usd } from './shared';
+import { ActivityList, call, date, dateTime, money, moneyList, Panel, PlanBadge, relative, SearchBox, StatusBadge, TYPE, useDebounced, usd } from './shared';
+import ResetPasswordDialog from '../../components/ResetPasswordDialog';
 
 export function ConsoleTenants() {
     const [status, setStatus] = useState('');
@@ -79,6 +80,7 @@ export function ConsoleTenant() {
     const [tab, setTab] = useState('overview');
     const [planOpen, setPlanOpen] = useState(false);
     const [confirm, setConfirm] = useState(null);
+    const [resetting, setResetting] = useState(null);
     const [busy, setBusy] = useState(false);
 
     const load = useCallback(() => call(`tenants/${id}`).then(setD), [id]);
@@ -176,7 +178,8 @@ export function ConsoleTenant() {
                                                 <p className="truncate font-bold text-graphite">{a.name}</p>
                                                 <p className="truncate text-sm text-pencil">{a.email}{a.phone ? ` · ${a.phone}` : ''}</p>
                                             </div>
-                                            <span className="text-sm text-pencil">Last sign-in {relative(a.last_login_at).toLowerCase()}</span>
+                                            <span className="hidden text-sm text-pencil sm:inline">Last sign-in {relative(a.last_login_at).toLowerCase()}</span>
+                                            <Button size="sm" variant="secondary" icon="lock" onClick={() => setResetting(a)}>Reset password</Button>
                                         </li>
                                     ))}
                                 </ul>
@@ -188,7 +191,7 @@ export function ConsoleTenant() {
                                     <Row label="Current">{d.effective.plan?.name ?? '—'} {d.effective.source === 'trial' && <span className="text-pencil">(trial)</span>}</Row>
                                     <Row label={d.effective.source === 'trial' ? 'Trial ends' : 'Renews / ends'}>{d.effective.ends_at ? date(d.effective.ends_at) : 'No end date'}</Row>
                                     <Row label="Paid plan">{t.plan?.name ?? 'None'}</Row>
-                                    <Row label="Fees collected">{money(d.orders.paid_total)}</Row>
+                                    <Row label="Fees collected">{moneyList(d.orders.paid_total)}</Row>
                                 </dl>
                             </Panel>
                             <Panel title="Contact">
@@ -262,6 +265,10 @@ export function ConsoleTenant() {
 
             <PlanDialog open={planOpen} onClose={() => setPlanOpen(false)} d={d}
                 onSave={(body) => { setPlanOpen(false); patch(body, 'Plan updated'); }} />
+
+            <ResetPasswordDialog open={!!resetting} person={resetting} signInUrl={`${window.location.origin}/${t.slug}/login`}
+                onClose={() => setResetting(null)}
+                reset={async () => (await call(`users/${resetting.id}/reset-password`, { method: 'POST' })).password} />
 
             <ConfirmDialog open={confirm === 'suspend'} title={`Suspend ${t.name}?`} confirmLabel="Suspend institute" busy={busy}
                 onConfirm={() => patch({ status: 'suspended' }, 'Institute suspended')} onClose={() => setConfirm(null)}>

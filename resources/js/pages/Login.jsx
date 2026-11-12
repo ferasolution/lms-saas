@@ -79,9 +79,17 @@ export default function Login() {
                         {error?.status === 429 && <p className="text-margin" role="alert">Too many attempts. Wait a minute, then try again.</p>}
                         <Button type="submit" size="lg" className="w-full" busy={busy}>Sign in</Button>
                     </form>
-                    <p className="mt-6 text-center text-sm text-pencil">
-                        Forgot your password? Ask your institute’s admin to set a new one.
-                    </p>
+                    <div className="mt-6 rounded-xl bg-paper px-4 py-3 text-center text-sm text-pencil">
+                        <p><strong className="text-graphite">Forgot your password?</strong> Your institute’s admin can set a new one for you.</p>
+                        {(info.settings?.support_email || info.settings?.support_phone) && (
+                            <p className="mt-1">
+                                Contact them at{' '}
+                                {info.settings.support_email && <a href={`mailto:${info.settings.support_email}`} className="font-bold text-ink hover:underline">{info.settings.support_email}</a>}
+                                {info.settings.support_email && info.settings.support_phone && ' or '}
+                                {info.settings.support_phone && <a href={`tel:${info.settings.support_phone.replace(/\s/g, '')}`} className="font-bold text-ink hover:underline">{info.settings.support_phone}</a>}
+                            </p>
+                        )}
+                    </div>
                     <p className="mt-2 text-center text-sm"><Link to="/login" className="font-bold text-ink hover:underline">Not your institute?</Link></p>
                 </>
             )}

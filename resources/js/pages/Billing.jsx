@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useOutletContext } from 'react-router-dom';
 import { api } from '../lib/api';
-import { date, dateTime } from '../lib/format';
+import { date, dateTime, PAYMENT_METHODS } from '../lib/format';
 import Icon from '../components/Icon';
 import { Badge, Button, Field, Modal, PageHeader, Progress, Skeleton, useToast } from '../components/ui';
 
 const usd = (n) => `$${Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-const METHODS = [['jazzcash', 'JazzCash'], ['easypaisa', 'Easypaisa'], ['bank', 'Bank transfer']];
+const METHODS = ['bank', 'paypal', 'wise', 'card'].map((k) => [k, PAYMENT_METHODS[k].label]);
 const storage = (mb) => (mb === null || mb === undefined ? 'Unlimited' : mb >= 1024 ? `${Math.round(mb / 1024)} GB` : `${mb} MB`);
 
 export default function Billing() {
@@ -134,7 +134,7 @@ function PayDialog({ plan, payTo, tenant, onClose, onDone }) {
     const [busy, setBusy] = useState(false);
 
     useEffect(() => {
-        if (plan) { setMonths(1); setMethod(available[0]?.[0] ?? 'jazzcash'); setReference(''); setError(null); }
+        if (plan) { setMonths(1); setMethod(available[0]?.[0] ?? 'bank'); setReference(''); setError(null); }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [plan]);
 
@@ -156,7 +156,7 @@ function PayDialog({ plan, payTo, tenant, onClose, onDone }) {
     }
 
     return (
-        <Modal open onClose={onClose} title={`Upgrade to ${plan.name}`} description="Pay Fera Learn directly, then send us the transaction ID."
+        <Modal open onClose={onClose} title={`Upgrade to ${plan.name}`} description="Pay Fera Learn directly, then send us the transaction ID or receipt number."
             footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button busy={busy} onClick={submit} disabled={!available.length}>Send payment details</Button></>}>
             {!available.length ? (
                 <p className="text-graphite">Payment details aren’t set up yet. Please contact Fera Solution to upgrade.</p>
@@ -175,18 +175,20 @@ function PayDialog({ plan, payTo, tenant, onClose, onDone }) {
                     </div>
                     <div>
                         <p className="mb-2 font-bold text-graphite">2. Send <span className="text-ink-deep">{usd(total)}</span> by</p>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                             {available.map(([m, l]) => (
                                 <button key={m} type="button" onClick={() => setMethod(m)} aria-pressed={method === m}
                                     className={`rounded-lg border py-2 text-sm font-bold transition ${method === m ? 'border-ink bg-ink-50 text-ink-deep' : 'border-rule text-pencil hover:border-ink/30'}`}>{l}</button>
                             ))}
                         </div>
                         <div className="mt-2 rounded-xl bg-ink-50 px-4 py-3">
-                            <p className="font-bold whitespace-pre-line text-ink-deep">{payTo[method]}</p>
+                            {method === 'card'
+                                ? <a href={payTo.card} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-bold text-ink hover:underline">Open the card payment page<Icon name="external" size={16} /></a>
+                                : <p className="font-bold break-words whitespace-pre-line text-ink-deep">{payTo[method]}</p>}
                             {payTo.instructions && <p className="mt-1 text-sm whitespace-pre-line text-pencil">{payTo.instructions}</p>}
                         </div>
                     </div>
-                    <Field label="3. Transaction ID" name="payment_reference" error={error} value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. 0123456789" />
+                    <Field label="3. Transaction ID or receipt number" name="payment_reference" error={error} value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. 5TY12345AB678901C" />
                     {error && !Object.keys(error.errors).length && <p className="text-margin">{error.message}</p>}
                 </form>
             )}

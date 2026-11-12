@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api, upload } from '../../lib/api';
+import { CURRENCIES } from '../../lib/format';
 import { Button, ConfirmDialog, Field, FileDrop, Toggle, useToast } from '../../components/ui';
 
 const LEVELS = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
@@ -17,6 +18,7 @@ export default function DetailsTab({ course, tenant, onSaved, onDeleted }) {
         price: Number(course.price) ? String(Number(course.price)) : '',
         sale_price: course.sale_price ? String(Number(course.sale_price)) : '',
         certificate_enabled: course.certificate_enabled ?? true,
+        currency: course.currency ?? 'USD',
     }));
     const [error, setError] = useState(null);
     const [busy, setBusy] = useState(false);
@@ -56,6 +58,7 @@ export default function DetailsTab({ course, tenant, onSaved, onDeleted }) {
                     price: form.is_free ? 0 : Number(form.price || 0),
                     sale_price: form.is_free || !form.sale_price ? null : Number(form.sale_price),
                     certificate_enabled: form.certificate_enabled,
+                    currency: form.currency,
                 },
             });
             toast('Course details saved');
@@ -98,8 +101,13 @@ export default function DetailsTab({ course, tenant, onSaved, onDeleted }) {
                 <Card title="Pricing">
                     <Toggle label="Free course" hint="Students enrol with one click." checked={form.is_free} onChange={(v) => setForm({ ...form, is_free: v })} />
                     {!form.is_free && (
-                        <div className="grid gap-4 border-t border-rule pt-4 sm:grid-cols-2">
-                            <Field label={`Price (${course.currency})`} name="price" type="number" min="0" inputMode="numeric" error={error} value={form.price} onChange={set('price')} />
+                        <div className="grid gap-4 border-t border-rule pt-4 sm:grid-cols-[8rem_1fr_1fr]">
+                            <Field label="Currency" name="currency" error={error}>
+                                <select value={form.currency} onChange={set('currency')} className="h-11 w-full rounded-lg border border-rule bg-white px-3 focus:border-ink focus:outline-none">
+                                    {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </Field>
+                            <Field label="Price" name="price" type="number" min="0" inputMode="numeric" error={error} value={form.price} onChange={set('price')} />
                             <Field label="Sale price (optional)" name="sale_price" type="number" min="0" inputMode="numeric" error={error} value={form.sale_price} onChange={set('sale_price')}
                                 hint="Shown with the full price crossed out." />
                         </div>
