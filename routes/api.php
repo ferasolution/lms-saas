@@ -21,6 +21,8 @@ use App\Http\Controllers\Api\School\AttendanceController;
 use App\Http\Controllers\Api\School\DiaryController;
 use App\Http\Controllers\Api\School\ExamController;
 use App\Http\Controllers\Api\School\FeeController;
+use App\Http\Controllers\Api\School\HrController;
+use App\Http\Controllers\Api\School\AccountsController;
 use App\Http\Controllers\Api\School\OverviewController;
 use App\Http\Controllers\Api\School\StructureController;
 use App\Http\Controllers\Api\School\StudentController;
@@ -175,6 +177,10 @@ Route::middleware('tenant')->group(function () {
                 Route::get('diary/{entry}/submissions', [DiaryController::class, 'submissions']);
                 Route::patch('homework/{submission}', [DiaryController::class, 'check']);
 
+                Route::get('hr/me', [HrController::class, 'me']);
+                Route::post('hr/me/leave', [HrController::class, 'requestLeave'])->middleware('throttle:10,1');
+                Route::get('hr/payslips/{payslip}', [HrController::class, 'payslip']);
+
                 Route::get('grade-scale', [ExamController::class, 'scale']);
                 Route::get('exams', [ExamController::class, 'index']);
                 Route::get('exams/{exam}', [ExamController::class, 'show']);
@@ -208,6 +214,34 @@ Route::middleware('tenant')->group(function () {
                 Route::post('students/{student}/guardians', [StudentController::class, 'addGuardian']);
                 Route::delete('students/{student}/guardians/{guardian}', [StudentController::class, 'removeGuardian']);
                 Route::get('exports/students.csv', [StudentController::class, 'export']);
+
+                // HR and payroll
+                Route::get('hr/employees', [HrController::class, 'employees']);
+                Route::post('hr/employees', [HrController::class, 'storeEmployee']);
+                Route::patch('hr/employees/{employee}', [HrController::class, 'updateEmployee']);
+                Route::post('hr/employees/import-accounts', [HrController::class, 'importAccounts']);
+                Route::get('hr/exports/employees.csv', [HrController::class, 'export']);
+                Route::get('hr/attendance', [HrController::class, 'attendance']);
+                Route::post('hr/attendance', [HrController::class, 'saveAttendance']);
+                Route::get('hr/leaves', [HrController::class, 'leaves']);
+                Route::post('hr/leaves', [HrController::class, 'storeLeave']);
+                Route::post('hr/leaves/{leave}/review', [HrController::class, 'reviewLeave']);
+                Route::get('hr/payroll', [HrController::class, 'payrollRuns']);
+                Route::post('hr/payroll', [HrController::class, 'createRun']);
+                Route::get('hr/payroll/{run}', [HrController::class, 'showRun']);
+                Route::post('hr/payroll/{run}/recalculate', [HrController::class, 'recalculate']);
+                Route::post('hr/payroll/{run}/status', [HrController::class, 'advanceRun']);
+                Route::delete('hr/payroll/{run}', [HrController::class, 'destroyRun']);
+                Route::get('hr/payroll/{run}/export.csv', [HrController::class, 'exportRun']);
+                Route::patch('hr/payslips/{payslip}', [HrController::class, 'updateSlip']);
+
+                // Accounts
+                Route::get('accounts/summary', [AccountsController::class, 'summary']);
+                Route::get('accounts/entries', [AccountsController::class, 'index']);
+                Route::post('accounts/entries', [AccountsController::class, 'store']);
+                Route::patch('accounts/entries/{entry}', [AccountsController::class, 'update']);
+                Route::delete('accounts/entries/{entry}', [AccountsController::class, 'destroy']);
+                Route::get('accounts/export.csv', [AccountsController::class, 'export']);
 
                 // Exams
                 Route::put('grade-scale', [ExamController::class, 'saveScale']);
