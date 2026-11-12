@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { coursePrice, duration, LESSON_TYPES, titleCase } from '../../lib/format';
 import Icon from '../../components/Icon';
@@ -8,13 +8,34 @@ import { Badge, Button, ConfirmDialog, EmptyState, IconButton, Menu, Modal, Tabs
 import LessonEditor from './LessonEditor';
 import StudentsTab from './StudentsTab';
 import DetailsTab from './DetailsTab';
+import GradingQueue from '../../components/GradingQueue';
+import Announcements from '../../components/Announcements';
+import CourseReviews from '../../components/CourseReviews';
+import Stars from '../../components/Stars';
 
 export default function Workspace({ data, reload, tenant }) {
     const toast = useToast();
     const navigate = useNavigate();
-    const [tab, setTab] = useState('curriculum');
+    const [params, setParams] = useSearchParams();
+    const tab = params.get('tab') || 'curriculum';
+    const setTab = (t) => setParams(t === 'curriculum' ? {} : { tab: t }, { replace: true });
     const [busy, setBusy] = useState(false);
+    const [copying, setCopying] = useState(false);
     const { course, sections, stats } = data;
+    const assignmentCount = sections.reduce((n, s) => n + s.lessons.filter((l) => l.type === 'assignment').length, 0);
+
+    async function duplicate() {
+        setCopying(true);
+        try {
+            const copy = await api(`courses/${course.id}/duplicate`, { method: 'POST', tenant });
+            toast('Copy created as a draft');
+            navigate(`/${tenant}/courses/${copy.id}`);
+        } catch (err) {
+            toast(err.message, 'error');
+        } finally {
+            setCopying(false);
+        }
+    }
     const price = coursePrice(course);
     const quizCount = sections.reduce((n, s) => n + s.lessons.filter((l) => l.type === 'quiz').length, 0);
 
@@ -56,6 +77,7 @@ export default function Workspace({ data, reload, tenant }) {
                         {duration(stats.duration_seconds) && <span>{duration(stats.duration_seconds)} of video and reading</span>}
                         <span>{quizCount} {quizCount === 1 ? 'quiz' : 'quizzes'}</span>
                         <span>{course.students_count} enrolled</span>
+                        {course.rating ? <span className="flex items-center gap-1"><Stars value={course.rating} size={13} />{course.rating.toFixed(1)} ({course.reviews_count})</span> : null}
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch">
@@ -65,18 +87,25 @@ export default function Workspace({ data, reload, tenant }) {
                         <Button icon="eye" busy={busy} onClick={() => setStatus('published')}>Publish</Button>
                     )}
                     <Button variant="ghost" icon="play" as={Link} to={`/${tenant}/learn/${course.id}`}>Preview</Button>
+                    <Button variant="ghost" icon="copy" busy={copying} onClick={duplicate}>Duplicate</Button>
                 </div>
             </header>
 
             <Tabs className="mt-8" value={tab} onChange={setTab} tabs={[
                 { value: 'curriculum', label: 'Curriculum', icon: 'layers' },
                 { value: 'students', label: 'Students', icon: 'users', count: course.students_count },
+                assignmentCount > 0 && { value: 'grading', label: 'Grading', icon: 'clipboard' },
+                { value: 'announcements', label: 'Announcements', icon: 'flag' },
+                { value: 'reviews', label: 'Reviews', icon: 'star', count: course.reviews_count || null },
                 { value: 'details', label: 'Details', icon: 'edit' },
-            ]} />
+            ].filter(Boolean)} />
 
             <div className="mt-6">
                 {tab === 'curriculum' && <Curriculum data={data} reload={reload} tenant={tenant} />}
                 {tab === 'students' && <StudentsTab course={course} tenant={tenant} onChange={reload} />}
+                {tab === 'grading' && <GradingQueue tenant={tenant} courseId={course.id} />}
+                {tab === 'announcements' && <Announcements tenant={tenant} courseId={course.id} canPost title="Course announcements" />}
+                {tab === 'reviews' && <CourseReviews tenant={tenant} courseId={course.id} />}
                 {tab === 'details' && (
                     <DetailsTab course={course} tenant={tenant} onSaved={reload}
                         onDeleted={() => { toast('Course deleted'); navigate(`/${tenant}/courses`); }} />

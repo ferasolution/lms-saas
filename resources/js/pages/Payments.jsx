@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, Navigate, useOutletContext } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, download } from '../lib/api';
+import Coupons from '../components/Coupons';
 import { dateTime, money, PAYMENT_METHODS } from '../lib/format';
 import Icon from '../components/Icon';
 import { Avatar, Badge, Button, EmptyState, Field, Modal, PageHeader, Skeleton, Tabs, useToast } from '../components/ui';
@@ -16,7 +17,8 @@ export default function Payments() {
     const [note, setNote] = useState('');
     const [busy, setBusy] = useState(null);
 
-    const load = useCallback(() => api(`orders?status=${status}`, { tenant }).then(setData), [tenant, status]);
+    const isCoupons = status === 'coupons';
+    const load = useCallback(() => api(`orders?status=${status === 'coupons' ? 'pending' : status}`, { tenant }).then(setData), [tenant, status]);
     useEffect(() => { if (isAdmin) { setData(null); load(); } }, [load, isAdmin]);
 
     if (!isAdmin) return <Navigate to={`/${tenant}`} replace />;
@@ -51,7 +53,8 @@ export default function Payments() {
 
     return (
         <div>
-            <PageHeader title="Payments" description="Students send their transaction ID after paying. Check it in your account, then approve." />
+            <PageHeader title="Payments" description="Students send their transaction ID after paying. Check it in your account, then approve."
+                actions={<Button variant="secondary" icon="download" onClick={() => download('exports/payments.csv', tenant, 'payments.csv').catch((e) => toast(e.message, 'error'))}>Export CSV</Button>} />
 
             {noAccounts && (
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-amber-900 ring-1 ring-amber-600/20">
@@ -70,10 +73,11 @@ export default function Payments() {
                 { value: 'pending', label: 'To review', count: data?.summary.pending },
                 { value: 'paid', label: 'Approved' },
                 { value: 'failed', label: 'Not received' },
+                { value: 'coupons', label: 'Discount codes', icon: 'tag' },
             ]} />
 
             <div className="mt-6">
-                {data === null ? <Skeleton className="h-48 rounded-2xl" /> : data.data.length === 0 ? (
+                {isCoupons ? <Coupons tenant={tenant} currency={me.tenant.settings?.currency ?? 'USD'} /> : data === null ? <Skeleton className="h-48 rounded-2xl" /> : data.data.length === 0 ? (
                     <EmptyState icon="receipt" title={status === 'pending' ? 'Nothing to review' : 'No payments here yet'}>
                         {status === 'pending' ? 'When a student pays for a course, their payment shows up here for you to confirm.' : null}
                     </EmptyState>
@@ -89,7 +93,10 @@ export default function Payments() {
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4 lg:w-[34rem]">
-                                    <Meta label="Amount" value={<strong className="font-display text-base text-ink-deep">{money(o.total, o.currency)}</strong>} />
+                                    <Meta label="Amount" value={<>
+                                        <strong className="font-display text-base text-ink-deep">{money(o.total, o.currency)}</strong>
+                                        {o.coupon && <span className="block text-xs text-leaf">{o.coupon} −{money(o.discount, o.currency)}</span>}
+                                    </>} />
                                     <Meta label="Method" value={METHOD[o.payment_method] ?? o.payment_method} />
                                     <Meta label="Reference" value={<span className="font-mono font-bold break-all text-graphite">{o.payment_reference}</span>} />
                                     <Meta label="Sent" value={dateTime(o.created_at)} />

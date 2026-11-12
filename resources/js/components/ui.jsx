@@ -63,7 +63,7 @@ export function Field({ label, hint, error, name, as = 'input', children, classN
     return (
         <div className={className}>
             {label && <label htmlFor={id} className="mb-1.5 block text-sm font-bold text-graphite">{label}</label>}
-            {children ?? (
+            {children && as !== 'select' ? children : (
                 <Control
                     id={id}
                     name={name}
@@ -71,7 +71,7 @@ export function Field({ label, hint, error, name, as = 'input', children, classN
                     aria-describedby={hint || message ? `${id}-d` : undefined}
                     className={`block w-full rounded-lg border bg-white px-3 text-graphite placeholder:text-pencil/60 transition-colors focus:outline-none focus:ring-4 ${as === 'textarea' ? 'py-2.5' : 'h-11'} ${message ? 'border-margin/60 focus:border-margin focus:ring-margin/10' : 'border-rule hover:border-ink/30 focus:border-ink focus:ring-ink/10'}`}
                     {...props}
-                />
+                >{as === 'select' ? children : undefined}</Control>
             )}
             {(hint || message) && (
                 <p id={`${id}-d`} className={`mt-1.5 text-sm ${message ? 'text-margin' : 'text-pencil'}`}>{message || hint}</p>
@@ -101,6 +101,8 @@ const BADGE = {
     trial: 'bg-amber-50 text-amber-800 ring-amber-600/20',
     neutral: 'bg-white text-graphite ring-rule',
     danger: 'bg-margin/5 text-margin ring-margin/20',
+    success: 'bg-leaf-50 text-leaf ring-leaf/20',
+    warning: 'bg-amber-50 text-amber-800 ring-amber-600/20',
 };
 
 export function Badge({ tone = 'neutral', children, dot }) {
@@ -332,7 +334,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 export function FileDrop({ kind = 'image', value, onUpload, onClear, uploading, error, hint }) {
     const [over, setOver] = useState(false);
     const input = useRef(null);
-    const accept = kind === 'image' ? 'image/png,image/jpeg,image/webp' : 'application/pdf';
+    const accept = kind === 'image' ? 'image/png,image/jpeg,image/webp' : kind === 'any' ? 'application/pdf,image/png,image/jpeg,image/webp' : 'application/pdf';
     const pick = (files) => files?.[0] && onUpload(files[0]);
 
     if (value) {
@@ -358,7 +360,7 @@ export function FileDrop({ kind = 'image', value, onUpload, onClear, uploading, 
                 onDrop={(e) => { e.preventDefault(); setOver(false); pick(e.dataTransfer.files); }}
                 className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-7 text-center transition ${over ? 'border-ink bg-ink-50' : 'border-rule bg-white hover:border-ink/40'}`}>
                 {uploading ? <Spinner className="text-ink" /> : <Icon name="upload" size={24} className="text-ink" />}
-                <span className="font-bold text-graphite">{uploading ? 'Uploading…' : `Drop ${kind === 'image' ? 'an image' : 'a PDF'} here or click to choose`}</span>
+                <span className="font-bold text-graphite">{uploading ? 'Uploading…' : `Drop ${kind === 'image' ? 'an image' : kind === 'any' ? 'a PDF or image' : 'a PDF'} here or click to choose`}</span>
                 <span className="text-sm text-pencil">{hint ?? (kind === 'image' ? 'JPG, PNG or WebP, up to 4 MB' : 'PDF up to 20 MB')}</span>
             </button>
             {error && <p className="mt-1.5 text-sm text-margin">{error}</p>}

@@ -51,6 +51,12 @@ const PATHS = {
     layers: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5',
     receipt: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6M9 12h6',
     image: 'M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5M15 9h.01',
+    bell: 'M6 16V11a6 6 0 1 1 12 0v5l2 2H4l2-2Zm4 4a2 2 0 0 0 4 0',
+    star: 'm12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z',
+    filter: 'M4 5h16l-6 7.5V19l-4 1.5v-8L4 5Z',
+    tag: 'M3 12V4h8l9.5 9.5-8 8L3 12Zm5-4h.01',
+    message: 'M4 5h16v11H9l-5 4V5Z',
+    clipboard: 'M9 4h6v3H9zM7 5.5H5V21h14V5.5h-2M9 12h6M9 16h4',
 };
 
 export default function Icon({ name, size = 20, className = '', strokeWidth = 1.8, title }) {

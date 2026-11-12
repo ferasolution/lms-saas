@@ -20,6 +20,7 @@ import Player from './pages/Player';
 import MyLearning from './pages/MyLearning';
 import { CertificateList, PublicCertificate, TenantCertificate } from './pages/Certificates';
 import Payments from './pages/Payments';
+import Grading from './pages/Grading';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import { PlatformLogin } from './pages/Platform';
@@ -28,6 +29,7 @@ import ConsoleOverview from './pages/platform/ConsoleOverview';
 import { ConsoleTenant, ConsoleTenants } from './pages/platform/ConsoleTenants';
 import { ConsoleActivity, ConsoleHealth, ConsolePayments, ConsoleSettings, ConsoleSubscriptions, ConsoleUsers } from './pages/platform/ConsoleMore';
 import Billing from './pages/Billing';
+import { ConsoleAnnouncements, ConsolePlans } from './pages/platform/ConsolePlans';
 import Verify from './pages/Verify';
 
 // The marketing page carries 3D and animation libraries; app pages don't need them.
@@ -67,6 +69,8 @@ function App() {
                         <Route path="subscriptions" element={<ConsoleSubscriptions />} />
                         <Route path="payments" element={<ConsolePayments />} />
                         <Route path="users" element={<ConsoleUsers />} />
+                        <Route path="plans" element={<ConsolePlans />} />
+                        <Route path="announcements" element={<ConsoleAnnouncements />} />
                         <Route path="activity" element={<ConsoleActivity />} />
                         <Route path="health" element={<ConsoleHealth />} />
                         <Route path="settings" element={<ConsoleSettings />} />
@@ -78,6 +82,7 @@ function App() {
                         <Route index element={<Overview />} />
                         <Route path="my" element={<MyLearning />} />
                         <Route path="courses" element={<Courses />} />
+                        <Route path="grading" element={<Grading />} />
                         <Route path="courses/:id" element={<CoursePage />} />
                         <Route path="courses/:id/quiz/:quizId" element={<QuizEditor />} />
                         <Route path="learn/:courseId" element={<Player />} />

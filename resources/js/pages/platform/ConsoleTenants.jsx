@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { session } from '../../lib/api';
 import Icon from '../../components/Icon';
 import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Field, Modal, PageHeader, Progress, Skeleton, Tabs, useToast } from '../../components/ui';
-import { ActivityList, call, date, dateTime, money, moneyList, Panel, PlanBadge, relative, SearchBox, StatusBadge, TYPE, useDebounced, usd } from './shared';
+import { ActivityList, call, exportCsv, date, dateTime, money, moneyList, Panel, PlanBadge, relative, SearchBox, StatusBadge, TYPE, useDebounced, usd } from './shared';
 import ResetPasswordDialog from '../../components/ResetPasswordDialog';
 
 export function ConsoleTenants() {
@@ -24,7 +24,8 @@ export function ConsoleTenants() {
 
     return (
         <div>
-            <PageHeader title="Institutes" description={meta ? `${meta.total} registered` : 'Everyone who has signed up.'} />
+            <PageHeader title="Institutes" description={meta ? `${meta.total} registered` : 'Everyone who has signed up.'}
+                actions={<Button variant="secondary" icon="download" onClick={() => exportCsv('exports/institutes.csv', 'institutes.csv')}>Export CSV</Button>} />
             <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <Tabs value={status} onChange={setStatus} className="border-b-0" tabs={[
                     { value: '', label: 'All' }, { value: 'trial', label: 'Trial' }, { value: 'active', label: 'Active' }, { value: 'suspended', label: 'Suspended' },

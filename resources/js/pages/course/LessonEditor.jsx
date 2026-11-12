@@ -36,6 +36,7 @@ export default function LessonEditor({ open, lesson, sectionId, type: newType, t
             minutes: lesson?.duration_seconds ? String(Math.round(lesson.duration_seconds / 60)) : '',
             is_preview: lesson?.is_preview ?? false,
             drip_days: lesson?.drip_days ? String(lesson.drip_days) : '',
+            max_points: lesson?.max_points ? String(lesson.max_points) : '100',
         });
     }, [open, lesson]);
 
@@ -66,7 +67,11 @@ export default function LessonEditor({ open, lesson, sectionId, type: newType, t
             drip_days: form.drip_days ? Number(form.drip_days) : null,
         };
         if (type === 'video') body.video_url = form.video_url || null;
-        if (type === 'text' || type === 'pdf' || type === 'live') body.content = form.content || null;
+        if (type === 'text' || type === 'pdf' || type === 'live' || type === 'assignment') body.content = form.content || null;
+        if (type === 'assignment') {
+            body.max_points = form.max_points ? Number(form.max_points) : 100;
+            body.file_path = form.file_path || null;
+        }
         if (type === 'pdf') body.file_path = form.file_path || null;
         if (type === 'live') {
             body.live_url = form.live_url || null;
@@ -126,6 +131,20 @@ export default function LessonEditor({ open, lesson, sectionId, type: newType, t
                         <Field label="Meeting link" name="live_url" type="url" error={error} value={form.live_url ?? ''} onChange={set('live_url')}
                             placeholder="https://zoom.us/j/… or https://meet.google.com/…" />
                         <Field label="Starts at" name="live_starts_at" type="datetime-local" error={error} value={form.live_starts_at ?? ''} onChange={set('live_starts_at')} />
+                    </>
+                )}
+
+                {type === 'assignment' && (
+                    <>
+                        <Field label="Instructions" name="content" as="textarea" rows={8} error={error} value={form.content ?? ''} onChange={set('content')}
+                            placeholder="What should students hand in? Include the length, format and what you’ll be looking for."
+                            hint="Students can type their answer, attach a PDF or image, or both." />
+                        <Field label="Worksheet or brief (optional)" name="file_path" error={error}>
+                            <FileDrop kind="pdf" value={form.file_path} uploading={uploading} error={uploadError}
+                                onUpload={onFile} onClear={() => setForm((f) => ({ ...f, file_path: '' }))} />
+                        </Field>
+                        <Field label="Marked out of" name="max_points" type="number" min="1" max="1000" inputMode="numeric" className="sm:w-56"
+                            error={error} value={form.max_points ?? ''} onChange={set('max_points')} />
                     </>
                 )}
 

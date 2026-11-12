@@ -4,6 +4,8 @@ import { api, session } from '../lib/api';
 import { applyBrand, resetBrand } from '../lib/brand';
 import Icon from '../components/Icon';
 import { Avatar, IconButton, Skeleton } from '../components/ui';
+import NotificationBell from '../components/NotificationBell';
+import SearchPalette from '../components/SearchPalette';
 
 const TYPE_LABEL = { school: 'School', academy: 'Academy', corporate: 'Company' };
 const ROLE_LABEL = { admin: 'Admin', instructor: 'Instructor', student: 'Student', parent: 'Parent', manager: 'Manager' };
@@ -15,6 +17,16 @@ export default function TenantLayout() {
     const [me, setMe] = useState(null);
     const [pending, setPending] = useState(0);
     const [drawer, setDrawer] = useState(false);
+    const [searching, setSearching] = useState(false);
+
+    // Ctrl/Cmd+K opens search from anywhere.
+    useEffect(() => {
+        const onKey = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearching((v) => !v); }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, []);
 
     const refresh = useCallback(() => api('auth/me', { tenant }).then((m) => {
         setMe(m);
@@ -65,6 +77,7 @@ export default function TenantLayout() {
             { to: `/${tenant}`, label: 'Overview', icon: 'home', end: true },
             !canTeach && { to: `/${tenant}/my`, label: 'My learning', icon: 'play' },
             { to: `/${tenant}/courses`, label: canTeach ? 'Courses' : 'Browse courses', icon: 'book' },
+            canTeach && { to: `/${tenant}/grading`, label: 'Grading', icon: 'clipboard' },
             !canTeach && { to: `/${tenant}/certificates`, label: 'Certificates', icon: 'award' },
         ],
         isAdmin && [
@@ -95,6 +108,15 @@ export default function TenantLayout() {
                         <p className="truncate font-display text-[17px] leading-tight font-bold text-ink-deep">{me.tenant.name}</p>
                         <p className="text-sm text-pencil">{TYPE_LABEL[me.tenant.type]}</p>
                     </div>
+                </div>
+                <div className="mt-5 flex items-center gap-2">
+                    <button type="button" onClick={() => setSearching(true)}
+                        className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border border-rule bg-paper px-3 text-left text-pencil transition hover:border-ink/40">
+                        <Icon name="search" size={16} />
+                        <span className="flex-1 truncate text-sm">Search</span>
+                        <kbd className="hidden rounded border border-rule bg-white px-1.5 text-[11px] lg:inline">Ctrl K</kbd>
+                    </button>
+                    <div className="hidden lg:block"><NotificationBell tenant={tenant} /></div>
                 </div>
             </div>
 
@@ -146,7 +168,9 @@ export default function TenantLayout() {
 
             <header className="sticky top-0 z-30 flex items-center justify-between border-b border-rule bg-white/90 px-4 py-3 backdrop-blur lg:hidden print:hidden">
                 <IconButton icon="menu" label="Open menu" onClick={() => setDrawer(true)} />
-                <p className="truncate px-3 font-display font-bold text-ink-deep">{me.tenant.name}</p>
+                <p className="min-w-0 flex-1 truncate px-3 font-display font-bold text-ink-deep">{me.tenant.name}</p>
+                <IconButton icon="search" label="Search" onClick={() => setSearching(true)} />
+                <NotificationBell tenant={tenant} align="right" />
                 <Link to={`/${tenant}/profile`} aria-label="Your profile" className="relative">
                     <Avatar name={me.user.name} size={32} />
                     {pending > 0 && <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-margin" />}
@@ -161,6 +185,9 @@ export default function TenantLayout() {
                     </aside>
                 </div>
             )}
+
+            <SearchPalette open={searching} onClose={() => setSearching(false)} tenant={tenant}
+                pages={groups.flat().map((l) => ({ label: l.label, icon: l.icon, to: l.to })).concat([{ label: 'Your profile', icon: 'user', to: `/${tenant}/profile` }])} />
 
             <main className="min-w-0">
                 <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8 lg:px-12 lg:py-10 print:max-w-none print:p-0">

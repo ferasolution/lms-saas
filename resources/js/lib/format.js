@@ -95,4 +95,5 @@ export const LESSON_TYPES = {
     pdf: { label: 'PDF', icon: 'file', hint: 'Upload a handout or worksheet' },
     live: { label: 'Live class', icon: 'calendar', hint: 'Zoom or Google Meet link with a time' },
     quiz: { label: 'Quiz', icon: 'quiz', hint: 'Auto-graded questions' },
+    assignment: { label: 'Assignment', icon: 'clipboard', hint: 'Students hand in work, you grade it' },
 };

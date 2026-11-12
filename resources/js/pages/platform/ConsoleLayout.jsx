@@ -11,6 +11,8 @@ const NAV = [
     { to: '/platform/subscriptions', label: 'Plan payments', icon: 'wallet', badge: 'subs' },
     { to: '/platform/payments', label: 'Student payments', icon: 'receipt', badge: 'orders' },
     { to: '/platform/users', label: 'Users', icon: 'users' },
+    { to: '/platform/plans', label: 'Plans', icon: 'tag' },
+    { to: '/platform/announcements', label: 'Announcements', icon: 'bell' },
     { to: '/platform/activity', label: 'Activity', icon: 'flag' },
     { to: '/platform/health', label: 'System health', icon: 'shield' },
     { to: '/platform/settings', label: 'Settings', icon: 'settings' },

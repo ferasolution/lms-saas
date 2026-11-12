@@ -314,9 +314,10 @@ class LearningFlowTest extends TestCase
             'kind' => 'image', 'file' => UploadedFile::fake()->create('evil.php', 10, 'application/x-php'),
         ], ['Accept' => 'application/json'])->assertUnprocessable();
 
+        // Students can upload too (assignment work), into their own institute's folder.
         $this->as($this->student)->post('/api/uploads', [
-            'kind' => 'image', 'file' => UploadedFile::fake()->image('a.png'),
-        ], ['Accept' => 'application/json'])->assertForbidden();
+            'kind' => 'pdf', 'file' => UploadedFile::fake()->create('essay.pdf', 50, 'application/pdf'),
+        ], ['Accept' => 'application/json'])->assertCreated();
     }
 
     public function test_settings_and_profile(): void

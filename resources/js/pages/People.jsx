@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useOutletContext, useSearchParams } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, download } from '../lib/api';
+import ImportPeopleDialog from '../components/ImportPeopleDialog';
 import Icon from '../components/Icon';
 import ResetPasswordDialog, { temporaryPassword } from '../components/ResetPasswordDialog';
 import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Field, Menu, SlideOver, Skeleton, useToast } from '../components/ui';
@@ -20,7 +21,8 @@ export default function People() {
     const toast = useToast();
 
     const [role, setRole] = useState('');
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState(params.get('search') ?? '');
+    const [importing, setImporting] = useState(false);
     const [query, setQuery] = useState('');
     const [people, setPeople] = useState(null);
     const [counts, setCounts] = useState({});
@@ -70,8 +72,13 @@ export default function People() {
                     <h1 className="text-3xl font-extrabold sm:text-4xl">People</h1>
                     <p className="mt-1 text-pencil">Everyone who can sign in to your institute.</p>
                 </div>
-                <Button icon="plus" onClick={() => setEditing({ role: role || 'student' })}>Add person</Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" icon="download" onClick={() => download('exports/people.csv', tenant, 'people.csv').catch((e) => toast(e.message, 'error'))}>Export</Button>
+                    <Button variant="secondary" icon="upload" onClick={() => setImporting(true)}>Import CSV</Button>
+                    <Button icon="plus" onClick={() => setEditing({ role: role || 'student' })}>Add person</Button>
+                </div>
             </header>
+            <ImportPeopleDialog open={importing} onClose={() => setImporting(false)} tenant={tenant} onDone={load} />
 
             <div className="mt-8 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex gap-1 overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-rule" role="tablist" aria-label="Filter by role">

@@ -23,7 +23,7 @@ class OrderController extends Controller
     {
         $status = $request->validate(['status' => ['nullable', Rule::in(['pending', 'paid', 'failed'])]])['status'] ?? null;
 
-        $orders = Order::with(['user', 'course' => fn ($q) => $q->withTrashed(), 'reviewer'])
+        $orders = Order::with(['user', 'course' => fn ($q) => $q->withTrashed(), 'reviewer', 'coupon'])
             ->when($status, fn ($q) => $q->where('status', $status))
             ->latest()
             ->paginate(50);
@@ -68,7 +68,7 @@ class OrderController extends Controller
 
         ActivityLog::record('order.approved', "Approved {$order->currency} {$order->total} from {$order->user?->name} for “{$order->course?->title}”", ['order_id' => $order->id]);
 
-        return response()->json($this->payload($order->load(['user', 'course', 'reviewer'])));
+        return response()->json($this->payload($order->load(['user', 'course', 'reviewer', 'coupon'])));
     }
 
     public function reject(Request $request, Order $order): JsonResponse
@@ -84,7 +84,7 @@ class OrderController extends Controller
         $order->reviewed_at = now();
         $order->save();
 
-        return response()->json($this->payload($order->load(['user', 'course', 'reviewer'])));
+        return response()->json($this->payload($order->load(['user', 'course', 'reviewer', 'coupon'])));
     }
 
     protected function payload(Order $o): array
@@ -93,6 +93,8 @@ class OrderController extends Controller
             'id' => $o->id,
             'status' => $o->status,
             'total' => $o->total,
+            'discount' => (float) $o->discount,
+            'coupon' => $o->coupon?->code,
             'currency' => $o->currency,
             'payment_method' => $o->gateway,
             'payment_reference' => $o->payment_reference,

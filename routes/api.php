@@ -102,6 +102,8 @@ Route::middleware('tenant')->group(function () {
         Route::delete('announcements/{announcement}', [EngagementController::class, 'destroyAnnouncement']);
         Route::get('search', [ToolsController::class, 'search']);
         Route::get('categories', [ToolsController::class, 'categories']);
+        // Anyone signed in can upload an image or PDF (course covers, lesson files, assignment work).
+        Route::post('uploads', [UploadController::class, 'store'])->middleware('throttle:20,1');
 
         // Reviews and discussion
         Route::get('courses/{course}/reviews', [EngagementController::class, 'reviews']);
@@ -139,7 +141,6 @@ Route::middleware('tenant')->group(function () {
             Route::delete('lessons/{lesson}', [CurriculumController::class, 'destroyLesson']);
             Route::put('courses/{course}/order', [CurriculumController::class, 'reorder']);
             Route::put('quizzes/{quiz}', [QuizController::class, 'update']);
-            Route::post('uploads', [UploadController::class, 'store'])->middleware('throttle:30,1');
             Route::post('courses/{course}/duplicate', [ToolsController::class, 'duplicate']);
             Route::get('submissions', [EngagementController::class, 'submissions']);
             Route::patch('submissions/{submission}', [EngagementController::class, 'grade']);

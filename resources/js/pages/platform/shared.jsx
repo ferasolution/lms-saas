@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, session } from '../../lib/api';
+import { api, download, session } from '../../lib/api';
 import { date, dateTime, money, moneyList, PAYMENT_METHODS, relative } from '../../lib/format';
 import Icon from '../../components/Icon';
 import { Badge, Skeleton } from '../../components/ui';
@@ -122,3 +122,6 @@ export function useDebounced(value, ms = 250) {
     return v;
 }
 
+
+/** Download one of the console's CSV exports with the owner token. */
+export const exportCsv = (path, name) => download(`platform/${path}`, null, name, session.token(KEY));

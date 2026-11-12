@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import Icon from '../../components/Icon';
 import { Avatar, Badge, Button, EmptyState, Field, Menu, Modal, PageHeader, Skeleton, Tabs, useToast } from '../../components/ui';
-import { ActivityList, call, dateTime, Kpi, money, moneyList, Panel, PAYMENT_METHODS, relative, SearchBox, useDebounced, usd } from './shared';
+import { ActivityList, call, exportCsv, dateTime, Kpi, money, moneyList, Panel, PAYMENT_METHODS, relative, SearchBox, useDebounced, usd } from './shared';
 import ResetPasswordDialog from '../../components/ResetPasswordDialog';
 import { OrderBadge, SubBadge } from './ConsoleTenants';
 
@@ -178,7 +178,8 @@ export function ConsoleUsers() {
 
     return (
         <div>
-            <PageHeader title="Users" description="Everyone with an account at any institute." />
+            <PageHeader title="Users" description="Everyone with an account at any institute."
+                actions={<Button variant="secondary" icon="download" onClick={() => exportCsv('exports/users.csv', 'users.csv')}>Export CSV</Button>} />
             <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <Tabs value={role} onChange={setRole} className="border-b-0" tabs={[
                     { value: '', label: 'Everyone', count: total },

@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { coursePrice, dateTime, duration, LESSON_TYPES, PAYMENT_METHODS, titleCase } from '../../lib/format';
+import { coursePrice, dateTime, duration, LESSON_TYPES, money, PAYMENT_METHODS, titleCase } from '../../lib/format';
+import Stars from '../../components/Stars';
+import CourseReviews from '../../components/CourseReviews';
+import Announcements from '../../components/Announcements';
 import Icon from '../../components/Icon';
 import CourseCover from '../../components/CourseCover';
 import RichText from '../../components/RichText';
@@ -92,9 +95,24 @@ export default function CourseDetail({ data, reload, tenant, me }) {
                     <CourseCover course={course} className="aspect-[16/7] w-full rounded-2xl" />
                     <h1 className="mt-6 text-3xl leading-tight font-extrabold sm:text-4xl">{course.title}</h1>
                     {course.short_description && <p className="mt-3 text-lg text-pencil">{course.short_description}</p>}
-                    {course.instructor && <p className="mt-4 text-graphite">Taught by <strong>{course.instructor.name}</strong></p>}
+                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-graphite">
+                        {course.instructor && <p>Taught by <strong>{course.instructor.name}</strong></p>}
+                        {course.rating ? (
+                            <a href="#reviews" className="flex items-center gap-2 hover:underline">
+                                <Stars value={course.rating} size={16} /><strong>{course.rating.toFixed(1)}</strong>
+                                <span className="text-pencil">({course.reviews_count} {course.reviews_count === 1 ? 'review' : 'reviews'})</span>
+                            </a>
+                        ) : null}
+                        {course.category && <span className="rounded-full bg-ink-50 px-3 py-0.5 text-sm font-bold text-ink">{course.category.name}</span>}
+                    </div>
 
                     <div className="mt-6 lg:hidden">{action}</div>
+
+                    {enrolled && (
+                        <div className="mt-8">
+                            <Announcements tenant={tenant} courseId={course.id} title="Course announcements" limit={3} compact />
+                        </div>
+                    )}
 
                     {points.length > 0 && (
                         <section className="ruled-faint mt-8 rounded-2xl border border-rule bg-white p-5 sm:p-6">
@@ -155,6 +173,10 @@ export default function CourseDetail({ data, reload, tenant, me }) {
                             ))}
                         </div>
                     </section>
+
+                    <div className="mt-10">
+                        <CourseReviews tenant={tenant} courseId={course.id} onChange={reload} />
+                    </div>
                 </div>
 
                 <aside className="hidden lg:block">
@@ -163,7 +185,12 @@ export default function CourseDetail({ data, reload, tenant, me }) {
             </div>
 
             <PaymentDialog open={paying} onClose={() => setPaying(false)} course={course} price={price} tenant={tenant} me={me} pending={pending}
-                onDone={() => { setPaying(false); toast('Payment details sent'); reload(); }} />
+                onDone={(r) => {
+                    setPaying(false);
+                    if (r?.status === 'enrolled') { toast('Code applied — you’re enrolled!'); learn(firstOpen?.id); return; }
+                    toast('Payment details sent');
+                    reload();
+                }} />
         </div>
     );
 }
@@ -177,14 +204,37 @@ function PaymentDialog({ open, onClose, course, price, tenant, me, pending, onDo
     const [note, setNote] = useState('');
     const [error, setError] = useState(null);
     const [busy, setBusy] = useState(false);
+    const [code, setCode] = useState('');
+    const [coupon, setCoupon] = useState(null);
+    const [codeError, setCodeError] = useState(null);
+    const [checking, setChecking] = useState(false);
+    const free = coupon && coupon.total <= 0;
+    const amount = coupon ? money(coupon.total, course.currency) : price.now;
+
+    async function applyCode() {
+        if (!code.trim()) return;
+        setChecking(true);
+        setCodeError(null);
+        try {
+            setCoupon(await api(`courses/${course.id}/coupon-check`, { method: 'POST', tenant, body: { code } }));
+        } catch (err) {
+            setCoupon(null);
+            setCodeError(err.message);
+        } finally {
+            setChecking(false);
+        }
+    }
 
     async function submit(e) {
-        e.preventDefault();
+        e?.preventDefault();
         setBusy(true);
         setError(null);
         try {
-            await api(`courses/${course.id}/enrol`, { method: 'POST', tenant, body: { payment_method: method, payment_reference: reference, note: note || null } });
-            onDone();
+            const body = free
+                ? { coupon: coupon.code }
+                : { payment_method: method, payment_reference: reference, note: note || null, ...(coupon ? { coupon: coupon.code } : {}) };
+            const r = await api(`courses/${course.id}/enrol`, { method: 'POST', tenant, body });
+            onDone(r);
         } catch (err) {
             setError(err);
         } finally {
@@ -196,12 +246,35 @@ function PaymentDialog({ open, onClose, course, price, tenant, me, pending, onDo
     const support = me?.tenant?.settings?.support_email || me?.tenant?.settings?.support_phone;
 
     return (
-        <Modal open={open} onClose={onClose} title="Pay for this course" description={`${course.title} · ${price.now}`}
+        <Modal open={open} onClose={onClose} title="Pay for this course" description={`${course.title} · ${amount}`}
             footer={<>
                 <Button variant="secondary" onClick={onClose}>Cancel</Button>
-                <Button busy={busy} onClick={submit}>Send payment details</Button>
+                <Button busy={busy} onClick={submit}>{free ? 'Enrol now' : 'Send payment details'}</Button>
             </>}>
             <form onSubmit={submit} className="space-y-5" noValidate>
+                <div className="rounded-xl border border-dashed border-rule p-3">
+                    {coupon ? (
+                        <div className="flex items-center gap-3">
+                            <span className="grid h-8 w-8 place-items-center rounded-lg bg-leaf-50 text-leaf"><Icon name="tag" size={16} /></span>
+                            <p className="flex-1 text-graphite"><strong>{coupon.code}</strong> applied — you save {money(coupon.discount, course.currency)}</p>
+                            <button type="button" onClick={() => { setCoupon(null); setCode(''); }} className="text-sm font-bold text-pencil hover:text-margin">Remove</button>
+                        </div>
+                    ) : (
+                        <div className="flex items-start gap-2">
+                            <div className="flex-1">
+                                <label className="sr-only" htmlFor="coupon-code">Discount code</label>
+                                <input id="coupon-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Have a discount code?"
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCode(); } }}
+                                    className="h-10 w-full rounded-lg border border-rule px-3 tracking-wide uppercase placeholder:normal-case placeholder:tracking-normal focus:border-ink focus:outline-none" />
+                                {(codeError || error?.errors?.coupon) && <p className="mt-1 text-sm text-margin">{codeError || error.errors.coupon[0]}</p>}
+                            </div>
+                            <Button type="button" variant="secondary" size="sm" className="h-10" busy={checking} onClick={applyCode} disabled={!code.trim()}>Apply</Button>
+                        </div>
+                    )}
+                </div>
+                {free ? (
+                    <p className="rounded-xl bg-leaf-50 px-4 py-3 text-graphite">This code covers the full price. Nothing to pay — just enrol.</p>
+                ) : (
                 <ol className="space-y-5">
                     <li>
                         <p className="font-bold text-graphite">1. Choose how you’ll pay</p>
@@ -215,7 +288,7 @@ function PaymentDialog({ open, onClose, course, price, tenant, me, pending, onDo
                         </div>
                     </li>
                     <li>
-                        <p className="font-bold text-graphite">2. Send <span className="text-ink-deep">{price.now}</span></p>
+                        <p className="font-bold text-graphite">2. Send <span className="text-ink-deep">{amount}</span></p>
                         <div className="mt-2 rounded-xl bg-ink-50 px-4 py-3 text-graphite">
                             {method === 'card' && account ? (
                                 <a href={account} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-bold text-ink hover:underline">Pay by card<Icon name="external" size={16} /></a>
@@ -232,7 +305,8 @@ function PaymentDialog({ open, onClose, course, price, tenant, me, pending, onDo
                             onChange={(e) => setReference(e.target.value)} placeholder="e.g. 5TY12345AB678901C" hint="From your bank, PayPal, Wise or card receipt. The institute uses it to find your payment." />
                     </li>
                 </ol>
-                <Field label="Message for the institute (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+                )}
+                {!free && <Field label="Message for the institute (optional)" value={note} onChange={(e) => setNote(e.target.value)} />}
                 {error && !Object.keys(error.errors).length && <p className="text-margin" role="alert">{error.message}</p>}
             </form>
         </Modal>

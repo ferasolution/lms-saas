@@ -197,7 +197,7 @@ class EngagementController extends Controller
 
         if ($isNew && $course->instructor_id) {
             $this->notifier->send($course->instructor_id, 'review', "{$user->name} rated “{$course->title}” {$data['rating']}/5",
-                $data['body'] ? Str::limit($data['body'], 140) : null, "/courses/{$course->id}", $this->tenants->id());
+                ! empty($data['body']) ? Str::limit($data['body'], 140) : null, "/courses/{$course->id}", $this->tenants->id());
         }
 
         return response()->json($review->only('id', 'rating', 'body'), $isNew ? 201 : 200);
@@ -338,7 +338,7 @@ class EngagementController extends Controller
             ->when($data['course_id'] ?? null, fn ($q, $id) => $q->whereKey($id))
             ->pluck('id');
 
-        $subs = AssignmentSubmission::with(['user', 'lesson'])
+        $subs = AssignmentSubmission::with(['user', 'lesson.course'])
             ->whereIn('lesson_id', Lesson::whereIn('course_id', $courseIds)->where('type', 'assignment')->select('id'))
             ->when($data['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
             ->when($data['lesson_id'] ?? null, fn ($q, $id) => $q->where('lesson_id', $id))
@@ -363,7 +363,7 @@ class EngagementController extends Controller
         $submission->save();
 
         $this->notifier->send($submission->user_id, 'graded', "“{$lesson->title}” was graded: {$data['grade']}/".($lesson->max_points ?: 100),
-            $data['feedback'] ? Str::limit($data['feedback'], 140) : null, "/learn/{$course->id}/{$lesson->id}", $this->tenants->id());
+            ! empty($data['feedback']) ? Str::limit($data['feedback'], 140) : null, "/learn/{$course->id}/{$lesson->id}", $this->tenants->id());
 
         return response()->json($this->submissionRow($submission->load(['user', 'lesson']), true));
     }
@@ -382,6 +382,7 @@ class EngagementController extends Controller
         ];
         if ($withContext) {
             $row['user'] = $s->user?->only('id', 'name', 'email');
+            $row['course'] = $s->lesson?->course?->only('id', 'title');
             $row['lesson'] = $s->lesson ? ['id' => $s->lesson->id, 'title' => $s->lesson->title, 'course_id' => $s->lesson->course_id, 'max_points' => $s->lesson->max_points ?: 100] : null;
         }
 

@@ -6,6 +6,7 @@ import { Badge, Button, Skeleton, useToast } from '../components/ui';
 import CourseCover from '../components/CourseCover';
 import { money } from '../lib/format';
 import { MyCourseCard, useMyCourses } from './MyLearning';
+import Announcements from '../components/Announcements';
 
 function greeting() {
     const h = new Date().getHours();
@@ -153,6 +154,10 @@ export default function Overview() {
                     </aside>
                 )}
             </div>
+
+            <div className="mt-6">
+                <Announcements tenant={tenant} canPost={isAdmin} limit={5} compact />
+            </div>
         </div>
     );
 }
@@ -193,6 +198,10 @@ function StudentHome({ me, tenant, stats, firstName }) {
                     </div>
                 ))}
             </section>
+
+            <div className="mt-8">
+                <Announcements tenant={tenant} limit={3} compact />
+            </div>
 
             <section className="mt-10">
                 <div className="flex items-baseline justify-between">

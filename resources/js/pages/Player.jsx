@@ -5,6 +5,8 @@ import { dateTime, duration, LESSON_TYPES, videoEmbed } from '../lib/format';
 import Icon from '../components/Icon';
 import RichText from '../components/RichText';
 import QuizRunner from '../components/QuizRunner';
+import AssignmentPanel from '../components/AssignmentPanel';
+import LessonDiscussion from '../components/LessonDiscussion';
 import { Button, EmptyState, IconButton, Progress, Skeleton, useToast } from '../components/ui';
 
 export default function Player() {
@@ -147,15 +149,17 @@ export default function Player() {
 
                         <div className="mt-10 flex flex-col-reverse gap-3 border-t border-rule pt-6 sm:flex-row sm:items-center sm:justify-between">
                             {prev ? <Button variant="ghost" icon="chevronLeft" onClick={() => go(prev)}>Previous</Button> : <span />}
-                            {current.type !== 'quiz' && !current.locked && (
+                            {current.type !== 'quiz' && current.type !== 'assignment' && !current.locked && (
                                 enrolled && !current.completed ? (
                                     <Button size="lg" busy={busy} icon="check" onClick={complete}>{next ? 'Complete and continue' : 'Complete lesson'}</Button>
                                 ) : next ? (
                                     <Button size="lg" iconRight="chevronRight" onClick={() => go(next)}>Next lesson</Button>
                                 ) : null
                             )}
-                            {current.type === 'quiz' && next && current.completed && <Button size="lg" iconRight="chevronRight" onClick={() => go(next)}>Next lesson</Button>}
+                            {(current.type === 'quiz' || current.type === 'assignment') && next && (current.completed || !enrolled) && <Button size="lg" iconRight="chevronRight" onClick={() => go(next)}>Next lesson</Button>}
                         </div>
+
+                        {!current.locked && (enrolled || data.can_manage) && <LessonDiscussion key={current.id} lessonId={current.id} tenant={tenant} />}
                     </div>
                 </main>
             </div>
@@ -232,6 +236,10 @@ function LessonBody({ lesson, tenant, enrolled, courseId, onProgress }) {
                 {lesson.content && <RichText text={lesson.content} className="mt-8" />}
             </>
         );
+    }
+
+    if (lesson.type === 'assignment') {
+        return <AssignmentPanel key={lesson.id} lesson={lesson} tenant={tenant} enrolled={enrolled} onProgress={onProgress} />;
     }
 
     if (lesson.type === 'quiz' && lesson.quiz) {

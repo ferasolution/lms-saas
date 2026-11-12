@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../../lib/api';
+import { api, download } from '../../lib/api';
 import { date, relative } from '../../lib/format';
 import Icon from '../../components/Icon';
 import { Avatar, Badge, Button, ConfirmDialog, EmptyState, Menu, Modal, Progress, Skeleton, useToast } from '../../components/ui';
@@ -33,7 +33,12 @@ export default function StudentsTab({ course, tenant, onChange }) {
                     <Figure label="Completed" value={completed} />
                     <Figure label="Average progress" value={`${avg}%`} />
                 </div>
-                <Button icon="plus" onClick={() => setAdding(true)}>Add students</Button>
+                <div className="flex flex-wrap gap-2">
+                    {active.length > 0 && (
+                        <Button variant="secondary" icon="download" onClick={() => download(`exports/courses/${course.id}/students.csv`, tenant, 'students.csv').catch((e) => toast(e.message, 'error'))}>Export</Button>
+                    )}
+                    <Button icon="plus" onClick={() => setAdding(true)}>Add students</Button>
+                </div>
             </div>
 
             <div className="mt-6">

@@ -62,3 +62,20 @@ export async function upload(file, kind, tenant) {
 
 // First validation message for a field, if any.
 export const fieldError = (err, field) => err?.errors?.[field]?.[0];
+
+/** Fetch a CSV (or other file) with the session token and save it. */
+export async function download(path, tenant, filename, token) {
+    const headers = { Accept: 'text/csv' };
+    if (tenant) headers['X-Tenant'] = tenant;
+    const bearer = token ?? (tenant ? session.token(tenant) : null);
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
+    const res = await fetch(`/api/${path.replace(/^\//, '')}`, { headers });
+    if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
+    const blob = await res.blob();
+    const name = res.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/)?.[1] ?? filename;
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
