@@ -96,7 +96,8 @@ class LiveSessionTest extends TestCase
         $att = $this->as($this->teacher)->getJson("/api/school/live/{$id}/attendance")->assertOk()->json();
         $this->assertSame(['invited' => 1, 'joined' => 1, 'registered' => 0], $att['summary']);
         $this->assertSame(2, $att['people'][0]['joins']);
-        $this->as($this->teacher)->get("/api/school/live/{$id}/attendance.csv")->assertOk()->assertSee('Ava Chen');
+        $csv = $this->as($this->teacher)->get("/api/school/live/{$id}/attendance.csv")->assertOk()->streamedContent();
+        $this->assertStringContainsString('Ava Chen', $csv);
 
         $this->as($this->otherTeacher)->getJson("/api/school/live/{$id}/attendance")->assertForbidden();
         $this->as($this->student)->getJson("/api/school/live/{$id}/attendance")->assertForbidden();
