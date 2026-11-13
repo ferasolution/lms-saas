@@ -12,7 +12,7 @@ const TYPE_LABEL = { school: 'School', academy: 'Academy', corporate: 'Company' 
 const MODULE_OF = {
     attendance: 'attendance', diary: 'diary', timetable: 'timetable', exams: 'exams', fees: 'fees', admissions: 'admissions',
     hr: 'hr', 'my-hr': 'hr', accounts: 'accounts', library: 'library', campus: 'campus', meetings: 'meetings', events: 'events',
-    messages: 'messages', helpdesk: 'helpdesk', courses: 'courses', my: 'courses', grading: 'courses', certificates: 'courses', assistant: 'ai',
+    messages: 'messages', helpdesk: 'helpdesk', courses: 'courses', live: 'live', my: 'courses', grading: 'courses', certificates: 'courses', assistant: 'ai',
 };
 
 const ROLE_LABEL = { admin: 'Admin', instructor: 'Instructor', student: 'Student', parent: 'Parent', manager: 'Manager' };
@@ -123,6 +123,7 @@ export default function TenantLayout() {
             { to: `${t}/helpdesk`, label: 'Help desk', icon: 'inbox' },
         ] },
         { label: 'Learning', links: [
+            { to: `${t}/live`, label: 'Live sessions', icon: 'video' },
             isStudent && { to: `${t}/my`, label: 'My learning', icon: 'play' },
             { to: `${t}/courses`, label: canTeach ? 'Courses' : 'Browse courses', icon: 'book' },
             canTeach && { to: `${t}/grading`, label: 'Grading', icon: 'clipboard' },

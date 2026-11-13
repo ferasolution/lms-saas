@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
  */
 class AdminController extends Controller
 {
-    public const MODULES = ['admissions', 'attendance', 'diary', 'timetable', 'exams', 'fees', 'hr', 'accounts', 'library', 'campus', 'meetings', 'events', 'messages', 'helpdesk', 'courses', 'ai'];
+    public const MODULES = ['admissions', 'attendance', 'diary', 'timetable', 'exams', 'fees', 'hr', 'accounts', 'library', 'campus', 'meetings', 'events', 'messages', 'helpdesk', 'courses', 'live', 'ai'];
 
     public function __construct(protected School $school) {}
 

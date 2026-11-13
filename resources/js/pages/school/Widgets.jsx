@@ -6,6 +6,41 @@ import { TodayList } from '../../components/school';
 import { Avatar, Button, EmptyState, Field, Modal, Skeleton, useToast } from '../../components/ui';
 import { api } from '../../lib/api';
 import { ATTENDANCE, DIARY_KINDS, dueLabel, shortDate } from '../../lib/school';
+import { LIVE_KINDS, joinSession, startsIn, time } from '../../lib/live';
+
+/** Live classes, trainings and webinars that are on now or within 24 hours. */
+export function LiveSoon({ tenant, className = '' }) {
+    const toast = useToast();
+    const [rows, setRows] = useState([]);
+    const [, tick] = useState(0);
+    useEffect(() => {
+        const load = () => api('school/live/upcoming', { tenant }).then((r) => setRows(r.data)).catch(() => {});
+        load();
+        const i = setInterval(() => { tick((n) => n + 1); load(); }, 60000);
+        return () => clearInterval(i);
+    }, [tenant]);
+    if (!rows.length) return null;
+    return (
+        <section aria-label="Live sessions" className={`space-y-2 ${className}`}>
+            {rows.map((s) => {
+                const live = s.state === 'live';
+                const soon = startsIn(s.starts_at);
+                return (
+                    <div key={s.id} className={`flex flex-wrap items-center gap-3 rounded-2xl p-4 ${live ? 'bg-ink-deep text-white' : 'border border-rule bg-white'}`}>
+                        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${live ? 'bg-leaf text-white' : 'bg-ink-50 text-ink'}`}><Icon name="video" size={20} /></span>
+                        <div className="min-w-0 flex-1">
+                            <p className={`text-sm font-bold ${live ? 'text-white/70' : 'text-pencil'}`}>{live ? `Live now · until ${time(s.ends_at)}` : `${LIVE_KINDS[s.kind].label} · ${time(s.starts_at)}${soon ? ` · ${soon}` : ''}`}</p>
+                            <p className={`truncate font-bold ${live ? 'text-white' : 'text-ink-deep'}`}>{s.title}{s.host && <span className={`font-normal ${live ? 'text-white/70' : 'text-pencil'}`}> · {s.host.name}</span>}</p>
+                        </div>
+                        {s.join_open
+                            ? <Button size="sm" icon="video" onClick={() => joinSession(`school/live/${s.id}/join`, { method: 'POST', tenant }, toast)} className={live ? 'bg-leaf! text-white!' : ''}>{s.can_manage ? 'Start' : 'Join'}</Button>
+                            : <Link to={`/${tenant}/live?s=${s.id}`} className="text-sm font-bold text-ink hover:underline">Details</Link>}
+                    </div>
+                );
+            })}
+        </section>
+    );
+}
 
 function Tile({ to, icon, label, value, sub, tone = 'text-ink-deep' }) {
     const body = (
@@ -184,6 +219,7 @@ export function FamilyHome({ me, tenant }) {
                 <p className="text-pencil">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                 <h1 className="mt-1 text-3xl font-extrabold sm:text-4xl">{hello}, {me.user.name.split(' ')[0]}</h1>
             </header>
+            <LiveSoon tenant={tenant} className="mt-6" />
             <div className="mt-8 space-y-5">
                 {children === null ? <Skeleton className="h-72 rounded-2xl" /> : children.length === 0 ? (
                     <EmptyState icon="family" title="No children linked yet">Ask the school office to link your account to your child’s record. Then you’ll see their timetable, homework and attendance here.</EmptyState>
@@ -198,6 +234,10 @@ export function FamilyHome({ me, tenant }) {
 export function StudentToday({ tenant }) {
     const [me, setMe] = useState(null);
     useEffect(() => { api('school/family', { tenant }).then((r) => setMe(r.children[0] ?? false)).catch(() => setMe(false)); }, [tenant]);
-    if (!me) return null;
-    return <div className="mt-8"><ChildCard c={me} tenant={tenant} self /></div>;
+    return (
+        <>
+            <LiveSoon tenant={tenant} className="mt-6" />
+            {me && <div className="mt-8"><ChildCard c={me} tenant={tenant} self /></div>}
+        </>
+    );
 }

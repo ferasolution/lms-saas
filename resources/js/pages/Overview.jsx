@@ -7,7 +7,7 @@ import CourseCover from '../components/CourseCover';
 import { money } from '../lib/format';
 import { MyCourseCard, useMyCourses } from './MyLearning';
 import Announcements from '../components/Announcements';
-import { FamilyHome, OfficeToday, StudentToday, TeacherDay } from './school/Widgets';
+import { FamilyHome, LiveSoon, OfficeToday, StudentToday, TeacherDay } from './school/Widgets';
 
 function greeting() {
     const h = new Date().getHours();
@@ -65,6 +65,7 @@ export default function Overview() {
                 )}
             </header>
 
+            <LiveSoon tenant={tenant} className="mt-6" />
             <div className="mt-8">{isOffice ? <OfficeToday tenant={tenant} me={me} refresh={refresh} /> : <TeacherDay tenant={tenant} />}</div>
 
             {/* Getting started — only until every step is done */}

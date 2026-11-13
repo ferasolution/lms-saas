@@ -7,7 +7,7 @@ import Icon from './Icon';
 const ICON = {
     announcement: 'flag', platform: 'flag', review: 'sparkle', question: 'quiz', reply: 'quiz',
     submission: 'file', graded: 'check', payment: 'receipt', payment_approved: 'check', payment_rejected: 'alert',
-    certificate: 'award', billing: 'wallet',
+    certificate: 'award', billing: 'wallet', live: 'video',
 };
 
 /** The bell: unread count, a dropdown list, and links into the app. Polls once a minute. */

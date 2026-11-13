@@ -19,6 +19,7 @@ export const MODULES = [
     ['messages', 'Messages', 'Private messages between families and staff.'],
     ['helpdesk', 'Help desk', 'Support requests from families and staff.'],
     ['courses', 'Online courses', 'Self-paced courses, quizzes and certificates.'],
+    ['live', 'Live sessions', 'Online classes, staff trainings and webinars on Zoom or Meet.'],
     ['ai', 'AI assistant', 'Lesson plans, quizzes, tutoring and parent summaries.'],
 ];
 

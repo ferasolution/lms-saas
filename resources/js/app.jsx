@@ -39,6 +39,8 @@ import Messages from './pages/school/Messages';
 import Helpdesk from './pages/school/Helpdesk';
 import Meetings from './pages/school/Meetings';
 import Events from './pages/school/Events';
+import Live from './pages/school/Live';
+import Webinar from './pages/school/Webinar';
 import Library from './pages/school/Library';
 import Campus from './pages/school/Campus';
 import Assistant from './pages/school/Assistant';
@@ -100,6 +102,7 @@ function App() {
                     <Route path="/verify/:code" element={<PublicCertificate />} />
                     <Route path="/:tenant/login" element={<Login />} />
                     <Route path="/:tenant/apply" element={<Apply />} />
+                    <Route path="/:tenant/webinars/:slug" element={<Webinar />} />
                     <Route path="/:tenant/fees/invoices/:id/print" element={<FeePrint />} />
                     <Route path="/:tenant/exams/:id/report/:studentId" element={<ReportCard />} />
                     <Route path="/:tenant/payslips/:id" element={<PayslipPrint />} />
@@ -125,6 +128,7 @@ function App() {
                         <Route path="helpdesk" element={<Helpdesk />} />
                         <Route path="meetings" element={<Meetings />} />
                         <Route path="events" element={<Events />} />
+                        <Route path="live" element={<Live />} />
                         <Route path="library" element={<Library />} />
                         <Route path="campus" element={<Campus />} />
                         <Route path="assistant" element={<Assistant />} />

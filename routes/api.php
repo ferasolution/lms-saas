@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\TenantRegistrationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\School\AdmissionController;
 use App\Http\Controllers\Api\School\AttendanceController;
+use App\Http\Controllers\Api\School\LiveController;
 use App\Http\Controllers\Api\School\DiaryController;
 use App\Http\Controllers\Api\School\ExamController;
 use App\Http\Controllers\Api\School\FeeController;
@@ -102,6 +103,13 @@ Route::middleware('tenant')->group(function () {
     Route::get('admissions/form', [AdmissionController::class, 'form']);
     Route::post('admissions/apply', [AdmissionController::class, 'apply'])->middleware(['throttle:5,1', 'module:admissions']);
 
+    // Public webinar registration
+    Route::middleware('module:live')->group(function () {
+        Route::get('webinars/{slug}', [LiveController::class, 'publicShow']);
+        Route::post('webinars/{slug}/register', [LiveController::class, 'register'])->middleware('throttle:10,1');
+        Route::get('webinars/{slug}/join', [LiveController::class, 'publicJoin'])->middleware('throttle:30,1');
+    });
+
     Route::middleware(['auth:sanctum', 'role'])->group(function () {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
@@ -179,6 +187,12 @@ Route::middleware('tenant')->group(function () {
             Route::get('library/books', [OperationsController::class, 'books'])->middleware('module:library');
             Route::get('library/mine', [OperationsController::class, 'myLoans'])->middleware('module:library');
             Route::get('transport/mine', [OperationsController::class, 'myTransport'])->middleware('module:campus');
+            Route::middleware('module:live')->group(function () {
+                Route::get('live', [LiveController::class, 'index']);
+                Route::get('live/upcoming', [LiveController::class, 'upcoming']);
+                Route::get('live/{session}', [LiveController::class, 'show']);
+                Route::post('live/{session}/join', [LiveController::class, 'join'])->middleware('throttle:30,1');
+            });
             Route::get('ai', [AiController::class, 'status']);
             Route::post('ai', [AiController::class, 'generate'])->middleware(['module:ai', 'throttle:15,1']);
             Route::get('exams/{exam}/report/{student}', [ExamController::class, 'report'])->middleware('module:exams');
@@ -203,6 +217,14 @@ Route::middleware('tenant')->group(function () {
                 Route::patch('homework/{submission}', [DiaryController::class, 'check'])->middleware('module:diary');
 
                 Route::post('events', [CommunityController::class, 'storeEvent'])->middleware('module:events');
+                Route::middleware('module:live')->group(function () {
+                    Route::post('live', [LiveController::class, 'store']);
+                    Route::patch('live/{session}', [LiveController::class, 'update']);
+                    Route::delete('live/{session}', [LiveController::class, 'destroy']);
+                    Route::post('live/{session}/remind', [LiveController::class, 'remind'])->middleware('throttle:10,1');
+                    Route::get('live/{session}/attendance', [LiveController::class, 'attendance']);
+                    Route::get('live/{session}/attendance.csv', [LiveController::class, 'exportAttendance']);
+                });
                 Route::get('events/{event}/responses', [CommunityController::class, 'eventResponses'])->middleware('module:events');
                 Route::get('hr/me', [HrController::class, 'me'])->middleware('module:hr');
                 Route::post('hr/me/leave', [HrController::class, 'requestLeave'])->middleware('throttle:10,1')->middleware('module:hr');
